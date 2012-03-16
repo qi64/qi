@@ -16,7 +16,7 @@ a,b,c
 
 C;
         file_put_contents($csv, $content);
-        $this->it = new CsvIterator(fopen($csv, 'r'));
+        $this->it = new CsvIterator($csv);
     }
 
     public function testRewind()
@@ -24,5 +24,18 @@ C;
         $e = array('a' => '1', 'b' => '2', 'c' => null);
         $e = array($e);
         $this->assertEquals($e, iterator_to_array($this->it));
+        $this->assertEquals($e, iterator_to_array($this->it));
+    }
+
+    public function testHasHeaderFalse()
+    {
+        $e = array(
+            array(0 => 'a', 1 => 'b', 2 => 'c'),
+            array(0 => '1', 1 => '2')
+        );
+        $it = clone $this->it;
+        $it->hasHeader = false;
+        $this->assertEquals($e, iterator_to_array($it));
+        $this->assertEquals($e, iterator_to_array($it));
     }
 }
