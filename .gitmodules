@@ -1,0 +1,6 @@
+[submodule "vfsStream"]
+	path = vfsStream
+	url = https://github.com/mikey179/vfsStream.git
+[submodule "ClassLoader"]
+	path = ClassLoader
+	url = https://github.com/symfony/ClassLoader.git
