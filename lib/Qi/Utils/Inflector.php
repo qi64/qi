@@ -57,4 +57,29 @@ class Inflector
         $s = trim($s, $char);
         return $s;
     }
+
+    /**
+     * Convert CamelCasedWord to Camel_Cased_Word like class names. (uncamelize)
+     * @static
+     * @param $camel_cased_word
+     */
+    public static function underscore($camel_cased_word)
+    {
+        $replace = array(
+            '!([A-Z\d])([A-Z][a-z])!' => '$1_$2', // PHPAcronym to PHP_Acronym
+            '!([a-z\d])([A-Z])!' => '$1_$2' // CamelCasedWord to Camel_Cased_Word
+        );
+        return preg_replace(array_keys($replace), $replace, $camel_cased_word);
+    }
+
+    /**
+     * Convert MyTableName or My Table Name to my_table_name
+     * @static
+     * @param $s
+     * @return mixed|string
+     */
+    public static function tableize($s)
+    {
+        return self::slugize(self::underscore($s), '_');
+    }
 }

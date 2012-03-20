@@ -53,4 +53,56 @@ class InflectorTest extends \PHPUnit_Framework_TestCase
         $e = 'nome-sao-joao-maringa-pr-04-01-1981';
         $this->assertEquals($e, Inflector::slugize($s));
     }
+
+    /**
+     * should remove spaces before and after
+     */
+    public function testDasherizeSpaces()
+    {
+        $s = ' - name - ';
+        $e = 'name';
+        $this->assertEquals($e, Inflector::dasherize($s));
+    }
+
+    public function testUnderscore()
+    {
+        $s = 'CamelCasedWord';
+        $e = 'Camel_Cased_Word';
+        $this->assertEquals($e, Inflector::underscore($s));
+    }
+
+    public function testUnderscoreAcronymBegin()
+    {
+        $s = 'PHPCamelCasedWord';
+        $e = 'PHP_Camel_Cased_Word';
+        $this->assertEquals($e, Inflector::underscore($s));
+    }
+
+    public function testUnderscoreAcronymMiddle()
+    {
+        $s = 'CamelPHPCasedWord';
+        $e = 'Camel_PHP_Cased_Word';
+        $this->assertEquals($e, Inflector::underscore($s));
+    }
+
+    public function testUnderscoreAcronymEnd()
+    {
+        $s = 'CamelCasedWordPHP';
+        $e = 'Camel_Cased_Word_PHP';
+        $this->assertEquals($e, Inflector::underscore($s));
+    }
+
+    public function testUnderscoreNumbers()
+    {
+        $s = 'Camel23Cased42Word';
+        $e = 'Camel23_Cased42_Word';
+        $this->assertEquals($e, Inflector::underscore($s));
+    }
+
+    public function testTableize()
+    {
+        $s = 'My Table2Name';
+        $e = 'my_table2_name';
+        $this->assertEquals($e, Inflector::tableize($s));
+    }
 }
