@@ -1,0 +1,5 @@
+source :rubygems
+
+gem 'sinatra'
+gem 'coffee-script'
+gem 'rack-coffee'

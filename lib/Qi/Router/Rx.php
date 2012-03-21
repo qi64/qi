@@ -27,6 +27,9 @@ class Rx
         'format' => null
     );
 
+    /**
+    * Convert a route string to a RegExp string
+    */
     public static function compile($route)
     {
         $route = self::format_path($route);
@@ -44,6 +47,9 @@ class Rx
         return null;
     }
 
+    /**
+    * Match a path to a route string rule
+    */
     public static function match($path, $route, $default = array())
     {
         $path = self::format_path($path);

@@ -1,5 +1,7 @@
 <?php
+
 /* https://github.com/GaretJax/phpbrowscap/blob/master/src/phpbrowscap/Browscap.php
+
 @todo permitir manipular a sessão e os cookies
 @todo javascript para exibir apenas os valores modificados do ini
 @todo diferenciar os valores que são diferentes do padrao do php
@@ -7,28 +9,32 @@
 @todo ao invés de 1 e 0, exibir um check e um X
 @todo adicionar tab para conectar no MySql (futuramente outros bancos)
 @todo listar os diretórios raiz e mostrar a permissão de escrita
+@todo filtrar ini
+@todo mostrar session/cookies hierarquicamente
+
 */
-function h($s) { return @htmlspecialchars($s); }
+error_reporting(-1); // ALL errors
+define('START_TIME', microtime(true));
+function error_handler()
+{
+    $GLOBALS['ERRORS'][microtime(true)-START_TIME] = func_get_args();
+    return true;
+}
+$GLOBALS['ERRORS'] = array();
+set_error_handler('error_handler');
+
+function h($s) { return htmlspecialchars((string)$s); }
+function changed($values) { return $values['global_value'] == $values['local_value'] ? '' : ' changed'; }
+function array_index($array, $index) { return $array[$index]; }
+function user_name($id) { return array_index(posix_getpwuid($id), 'name'); }
+function group_name($id) { return array_index(posix_getgrgid($id), 'name'); }
+
 function access($bm) {
     if ($bm == 7) return 'PHP_INI_ALL';
     if ($bm == 4) return 'PHP_INI_SYSTEM';
     if ($bm == 6) return 'PHP_INI_PERDIR';
 }
-function changed($values) {
-  return $values['global_value'] == $values['local_value'] ? '' : ' changed';
-}
-function array_index($array, $index)
-{
-    return $array[$index];
-}
-function user_name($id)
-{
-    return array_index(posix_getpwuid($id), 'name');
-}
-function group_name($id)
-{
-    return array_index(posix_getgrgid($id), 'name');
-}
+
 function phpinfo2a()
 {
     ob_start();
@@ -75,9 +81,9 @@ session_start();
 $user = 'php';
 $passwd = 'info';
 
-if ($user && !isset($_SERVER['PHP_AUTH_USER']) 
-          || $_SERVER['PHP_AUTH_USER'] != $user 
-          || $_SERVER['PHP_AUTH_PW'] != $passwd) {
+if ($user && !isset($_SERVER['PHP_AUTH_USER'])
+    || $_SERVER['PHP_AUTH_USER'] != $user
+    || $_SERVER['PHP_AUTH_PW'] != $passwd) {
     header("WWW-Authenticate: Basic realm='Secure Area'");
     header("$_SERVER[SERVER_PROTOCOL] 401 Unauthorized");
     die("Inform user and password.");
@@ -94,8 +100,8 @@ $sys = array(
     'getmygid' => group_name(getmygid()),
     'getmyinode' => getmyinode(),
     'getcwd' => getcwd(),
-    'disk_free_space' => humanizeBytes(disk_free_space('.')),
-    'disk_total_space' => humanizeBytes(disk_total_space('.')),
+    'disk_free_space' => humanizeBytes(@disk_free_space('.')),
+    'disk_total_space' => humanizeBytes(@disk_total_space('.')),
     'fileowner' => user_name(fileowner('.')),
 );
 
@@ -119,7 +125,7 @@ $infos = compact('sys', 'phpinfo', 'server', 'env', 'cookies', 'session', 'exten
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
     <title>PHP INFO</title>
-    <link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="http://twitter.github.com/bootstrap/assets/css/bootstrap.css" />
     <style>
         #main {width: 1000px; margin: 20px auto;}
         .table {width: auto; margin: auto;}
@@ -143,50 +149,50 @@ $infos = compact('sys', 'phpinfo', 'server', 'env', 'cookies', 'session', 'exten
 
 <body><div id="main">
     <ul class="nav nav-tabs">
-    <? foreach($infos as $label => $info): ?>
+        <?php foreach($infos as $label => $info): ?>
         <li>
-            <a href="#<?=h($label)?>" data-toggle="tab">
-                <?=h($label)?> (<?=count($info)?>)
+            <a href="#<?php echo h($label)?>" data-toggle="tab">
+                <?php echo h($label)?> (<?php echo count($info)?>)
             </a>
         </li>
-    <? endforeach ?>
+        <?php endforeach ?>
     </ul>
 
-<? unset($infos['ini'], $infos['files']) ?>
+    <?php unset($infos['ini'], $infos['files']) ?>
 
     <div class="tab-content">
 
-        <? foreach($infos as $label => $info): ?>
-        <div class="tab-pane" id="<?=h( $label )?>">
+        <?php foreach($infos as $label => $info): ?>
+        <div class="tab-pane" id="<?php echo h( $label )?>">
             <table class="table table-bordered table-condensed">
-            <? foreach($info as $k => $v): ?>
+                <?php foreach($info as $k => $v): ?>
                 <tr>
-                    <th><?=h( $k )?></th>
-                    <td><?=h( $v )?></td>
+                    <th><?php echo h( $k )?></th>
+                    <td><?php echo h( $v )?></td>
                 </tr>
-            <? endforeach ?>
+                <?php endforeach ?>
             </table>
         </div>
-        <? endforeach ?>
+        <?php endforeach ?>
 
         <div class="tab-pane" id="ini">
             <table class="table table-bordered table-condensed">
                 <thead>
-                    <tr>
-                        <th>access</th>
-                        <th>cfg</th>
-                        <th>local value (<a href="http://php.net/manual/ini.list.php" target="_blank">reference</a>)</th>
-                    </tr>
+                <tr>
+                    <th>access</th>
+                    <th>cfg</th>
+                    <th>local value (<a href="http://php.net/manual/ini.list.php" target="_blank">reference</a>)</th>
+                </tr>
                 </thead>
                 <tbody>
-                    <? foreach($ini as $cfg => $values): ?>
-                    <tr class="<?=access($values['access'])?><?= changed($values) ?>">
-                        <td><?=access($values['access'])?></td>
-                        <td><?=h( $cfg )?></td>
-                        <!-- <td class="value"><?=h( $values['global_value'] )?></td> -->
-                        <td class="value"><?=h( $values['local_value'] )?></td>
-                    </tr>
-                    <? endforeach ?>
+                <?php foreach($ini as $cfg => $values): ?>
+                <tr class="<?php echo access($values['access'])?><?php echo changed($values) ?>">
+                    <td><?php echo access($values['access'])?></td>
+                    <td><?php echo h( $cfg )?></td>
+                    <!-- <td class="value"><?php echo h( $values['global_value'] )?></td> -->
+                    <td class="value"><?php echo h( $values['local_value'] )?></td>
+                </tr>
+                    <?php endforeach ?>
                 </tbody>
             </table>
         </div><!-- #ini.tab-pane -->
@@ -198,24 +204,34 @@ $infos = compact('sys', 'phpinfo', 'server', 'env', 'cookies', 'session', 'exten
             </form>
 
 <pre>
-<? if ($files) print_r($files) ?>
+<?php if ($files) print_r($files) ?>
 </pre>
         </div><!-- #files.tab-pane -->
     </div><!-- .tab-content -->
 
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
     <script src="http://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.0.1/bootstrap.min.js"></script>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/coffee-script/1.2.0/coffee-script.min.js"></script>
     <script>
         jQuery(function($) {
-          var hash = window.location.hash
-          if (hash) {
-            $(hash).addClass('active')
-            $('a[href=' + hash + ']').parent().addClass('active')
-          }
-          $(".nav-tabs a").click(function() {
-            window.location.hash = this.hash
-          })
+            var hash = window.location.hash
+            if (hash) {
+                $(hash).addClass('active')
+                $('a[href=' + hash + ']').parent().addClass('active')
+            }
+            $(".nav-tabs a").click(function() {
+                window.location.hash = this.hash
+            })
         })
     </script>
+<script type="text/coffeescript">
+jQuery ($)->
+    console.log 123
+</script>
+    <?php if ($GLOBALS['ERRORS']): ?>
+<pre>
+<?php print_r($GLOBALS['ERRORS']) ?>
+</pre>
+    <?php endif ?>
 </div></body>
 </html>
