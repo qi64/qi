@@ -1,9 +1,21 @@
 <?php
 
 namespace Qi\Utils;
+use DOMDocument;
 
 class Html
 {
+    // @TODO don't pretty print like Xml does
+    public static function pp($html)
+    {
+        $doc = new DOMDocument();
+        $doc->strictErrorChecking = false;
+        $doc->preserveWhiteSpace = false;
+        $doc->formatOutput = true;
+        $doc->loadHTML($html);
+        return $doc->saveHTML();
+    }
+
     public static function google_analytics($code)
     {
         return <<<S

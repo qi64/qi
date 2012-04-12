@@ -13,17 +13,32 @@
 @todo mostrar session/cookies hierarquicamente
 
 */
-error_reporting(-1); // ALL errors
+
+//error_reporting(-1); // ALL errors
 define('START_TIME', microtime(true));
+
+function define_function($name, $return = null) {
+    if (!function_exists($name)) {
+        if ($return !== null) {
+            $return = var_export($return, true);
+            eval("function $name() { return $return; }");
+        }else{
+            $message = "function %s does not exists!";
+            eval("function $name() { return sprintf('$message', '$name'); }");
+        }
+    }
+}
+
 function error_handler()
 {
+    if (error_reporting() === 0) return true;
     $GLOBALS['ERRORS'][microtime(true)-START_TIME] = func_get_args();
     return true;
 }
 $GLOBALS['ERRORS'] = array();
 set_error_handler('error_handler');
 
-function h($s) { return htmlspecialchars((string)$s); }
+function h($s) { return htmlspecialchars(is_array($s) ? implode(' ', $s) : $s); }
 function changed($values) { return $values['global_value'] == $values['local_value'] ? '' : ' changed'; }
 function array_index($array, $index) { return $array[$index]; }
 function user_name($id) { return array_index(posix_getpwuid($id), 'name'); }
@@ -76,20 +91,59 @@ function humanizeBytes($b, $f = "%0.1f ")
     return sprintf($f, $b);
 }
 
+function error_reporting_formatted()
+{
+    $errors = array(
+        E_ERROR => 'E_ERROR',
+        E_WARNING => 'E_WARNING',
+        E_PARSE => 'E_PARSE',
+        E_NOTICE => 'E_NOTICE',
+        E_CORE_ERROR => 'E_CORE_ERROR',
+        E_CORE_WARNING => 'E_CORE_WARNING',
+        E_COMPILE_ERROR => 'E_COMPILE_ERROR',
+        E_COMPILE_WARNING => 'E_COMPILE_WARNING',
+        E_USER_ERROR => 'E_USER_ERROR',
+        E_USER_WARNING => 'E_USER_WARNING',
+        E_USER_NOTICE => 'E_USER_NOTICE',
+        E_STRICT => 'E_STRICT',
+        E_RECOVERABLE_ERROR => 'E_RECOVERABLE_ERROR',
+        E_DEPRECATED => 'E_DEPRECATED',
+        E_ALL => 'E_ALL',
+    );
+    $out = array();
+    $e = error_reporting();
+    if ($e <= 0) return $e;
+    if ($e == E_ALL) return 'E_ALL';
+    foreach($errors as $i => $error) {
+        if (!($e & $i)) $out[] = $error;
+    }
+    return 'E_ALL ^ ( '.implode(' | ', $out).' )';
+}
+
+// compatibility safe
+define_function('posix_getpwuid', array('name' => 'function posix_getpwuid does not exists!'));
+define_function('posix_getgrgid', array('name' => 'function posix_getgrgid does not exists!'));
+if ( ! defined('E_DEPRECATED') ) define('E_DEPRECATED', 'E_DEPRECATED');
+
 session_start();
 
 $user = 'php';
 $passwd = 'info';
 
-if ($user && !isset($_SERVER['PHP_AUTH_USER'])
-    || $_SERVER['PHP_AUTH_USER'] != $user
-    || $_SERVER['PHP_AUTH_PW'] != $passwd) {
-    header("WWW-Authenticate: Basic realm='Secure Area'");
-    header("$_SERVER[SERVER_PROTOCOL] 401 Unauthorized");
-    die("Inform user and password.");
+if ($user && PHP_SAPI != 'cgi-fcgi') {
+    if (
+        ! isset($_SERVER['PHP_AUTH_USER'])
+        || $_SERVER['PHP_AUTH_USER'] != $user
+        || $_SERVER['PHP_AUTH_PW'] != $passwd
+    ) {
+        header("WWW-Authenticate: Basic realm='Secure Area'");
+        header("$_SERVER[SERVER_PROTOCOL] 401 Unauthorized");
+        die("Inform user and password.");
+    }
 }
 
 $sys = array(
+    'error_reporting' => error_reporting_formatted(),
     'php_uname' => php_uname(),
     'phpversion' => phpversion(),
     'php_sapi_name' => php_sapi_name(),
@@ -127,6 +181,7 @@ $infos = compact('sys', 'phpinfo', 'server', 'env', 'cookies', 'session', 'exten
     <title>PHP INFO</title>
     <link rel="stylesheet" type="text/css" href="http://twitter.github.com/bootstrap/assets/css/bootstrap.css" />
     <style>
+        body { background-color: #222; cursor: default }
         #main {width: 1000px; margin: 20px auto;}
         .table {width: auto; margin: auto;}
         .table tr:nth-child(even) {background-color: #fafafa;}
@@ -141,8 +196,13 @@ $infos = compact('sys', 'phpinfo', 'server', 'env', 'cookies', 'session', 'exten
             vertical-align: middle;
             text-align: right;
         }
-        #phpinfo td {
-            white-space: normal;
+        #phpinfo td { white-space: normal; }
+        .nav {margin-bottom:0}
+        .tab-content {
+            padding: 18px;
+            border: 1px solid #DDD;
+            border-top: none;
+            background-color: white;
         }
     </style>
 </head>
@@ -176,7 +236,7 @@ $infos = compact('sys', 'phpinfo', 'server', 'env', 'cookies', 'session', 'exten
         <?php endforeach ?>
 
         <div class="tab-pane" id="ini">
-            <table class="table table-bordered table-condensed">
+            <table class="table table-bordered table-condensed" style="width: 100%">
                 <thead>
                 <tr>
                     <th>access</th>
@@ -218,20 +278,29 @@ $infos = compact('sys', 'phpinfo', 'server', 'env', 'cookies', 'session', 'exten
             if (hash) {
                 $(hash).addClass('active')
                 $('a[href=' + hash + ']').parent().addClass('active')
+            }else{
+                $('ul.nav-tabs li:first a').trigger('click')
             }
             $(".nav-tabs a").click(function() {
                 window.location.hash = this.hash
             })
         })
     </script>
+<!--
+<script src="http://localhost:4567/src/jquery.esort.js"></script>
+<script src="http://localhost:4567/src/jquery.delayon.js"></script>
 <script type="text/coffeescript">
 jQuery ($)->
-    console.log 123
+    String.prototype.contains = (s)-> @toLowerCase().indexOf(s.toLowerCase()) != -1
+
+    $('#access').delayOn 250, 'keyup', ->
+        $('#ini tbody tr').hide().filter( -> $('td:first', @).text().contains $('#access').val() ).show()
 </script>
-    <?php if ($GLOBALS['ERRORS']): ?>
+-->
+<?php if ($GLOBALS['ERRORS']): ?>
 <pre>
 <?php print_r($GLOBALS['ERRORS']) ?>
 </pre>
-    <?php endif ?>
+<?php endif ?>
 </div></body>
 </html>
