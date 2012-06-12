@@ -82,4 +82,12 @@ class Inflector
     {
         return self::slugize(self::underscore($s), '_');
     }
+
+    public static function classify($s)
+    {
+        $s = preg_replace('!_|-!', ' ', $s);
+        $s = ucwords($s);
+        $s = preg_replace('!\s+!', '', $s);
+        return $s;
+    }
 }

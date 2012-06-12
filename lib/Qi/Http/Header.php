@@ -30,6 +30,11 @@ class Header
         self::content_type('text/plain', $charset);
     }
 
+    public static function text($charset = null)
+    {
+        self::plain($charset);
+    }
+
     public static function xml($charset = null)
     {
         self::content_type('text/xml', $charset);

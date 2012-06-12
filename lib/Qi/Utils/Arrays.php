@@ -7,13 +7,13 @@ class Arrays
     public static function map($array, $f)
     {
         if ( is_string($f) ) {
-            $f = function($k, $v) use ($f) {
+            $f = function($v, $k) use ($f) {
                 return sprintf($f, $k, $v);
             };
         }
         // return array_map($f, array_values($array), array_keys($array));
         $result = array();
-        foreach($array as $k => $v) $result[$k] = $f($k, $v);
+        foreach($array as $k => $v) $result[$k] = $f($v, $k);
         return $result;
     }
 

@@ -32,7 +32,9 @@ function define_function($name, $return = null) {
 function error_handler()
 {
     if (error_reporting() === 0) return true;
-    $GLOBALS['ERRORS'][microtime(true)-START_TIME] = func_get_args();
+    $args = func_get_args();
+    array_pop($args);
+    $GLOBALS['ERRORS'][microtime(true)-START_TIME] = $args;
     return true;
 }
 $GLOBALS['ERRORS'] = array();
