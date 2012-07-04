@@ -14,8 +14,8 @@ class Inflector
     protected static function getNormalizeTranslation()
     {
         if (!self::$normalize_translation) {
-            $accents    = str_split('áàãâéèêíìîóòõôúùûÁÀÃÂÉÈÊÍÌÎÓÒÕÔÚÙÛ', 2);//each char is 2 bytes length.
-            $normalized = str_split('aaaaeeeiiioooouuuAAAAEEEIIIOOOOUUU');
+            $accents    = str_split('çáàãâéèêíìîóòõôúùûÇÁÀÃÂÉÈÊÍÌÎÓÒÕÔÚÙÛ', 2);//each char is 2 bytes length.
+            $normalized = str_split('caaaaeeeiiioooouuuCAAAAEEEIIIOOOOUUU');
             self::$normalize_translation = array_combine($accents, $normalized);
         }
         return self::$normalize_translation;

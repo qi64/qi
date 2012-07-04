@@ -15,14 +15,21 @@ class InflectorTest extends \PHPUnit_Framework_TestCase
 
     public function testDasherizeEncoding()
     {
-        $s = 'ãéàê';
+        $s = 'ãéàêç';
         $this->assertEquals($s, Inflector::dasherize($s));
     }
 
-    public function testNormalize()
+    public function testNormalizeAcentos()
     {
         $s = 'áàãâ éèê íìî óòõô úùû ÁÀÃÂ ÉÈÊ ÍÌÎ ÓÒÕÔ ÚÙÛ';
         $e = 'aaaa eee iii oooo uuu AAAA EEE III OOOO UUU';
+        $this->assertEquals($e, Inflector::normalize($s));
+    }
+
+    public function testNormalizeCedilha()
+    {
+        $s = 'ç Ç';
+        $e = 'c C';
         $this->assertEquals($e, Inflector::normalize($s));
     }
 
@@ -42,8 +49,8 @@ class InflectorTest extends \PHPUnit_Framework_TestCase
 
     public function testLower()
     {
-        $s = 'ÃÉÀÊ';
-        $expected = 'ãéàê';
+        $s = 'ÃÉÀÊÇ';
+        $expected = 'ãéàêç';
         $this->assertEquals($expected, Inflector::lower($s));
     }
 

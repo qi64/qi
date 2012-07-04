@@ -48,6 +48,7 @@ class Arrays
         }
         return array_combine($keys, $values);
     }
+
     public static function indexBy($array, $key)
     {
         $result = array();

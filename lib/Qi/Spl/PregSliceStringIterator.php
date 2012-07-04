@@ -7,7 +7,7 @@ class PregSliceStringIterator extends PregMatchIterator
     protected function each()
     {
         if ($this->offset >= strlen($this->subject)) {
-            return $this->stopval;
+            return $this->stopIteration();
         }
 
         $start = $this->offset;
