@@ -11,6 +11,7 @@ It's not a framework, just a collection of utilities.
 - Fast. Just load what's needed for the request, using autoload.
 - PHP friendly. Don't try to be Java, Ruby or Python. It's PHP!
 - Social with others libraries. Don't try to reinvent the wheel when it's already well done like Analog, Symphony ClassLoader, vfsStream, PHPUnit, MeekroDB, etc.
-- MySql only! If you use PostgreSQL or Oracle, this lib is probably too small for you.
+- MySql/sqlite/MongoDB only! If you use PostgreSQL or Oracle, this lib is probably too small for you.
 - No external dependency. (except for testing)
 - [Composer](http://packagist.org) support
+

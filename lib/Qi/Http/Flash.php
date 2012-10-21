@@ -6,9 +6,12 @@ use ArrayIterator, IteratorAggregate, ArrayAccess;
 class Flash implements IteratorAggregate, ArrayAccess
 {
     protected static $singleton;
+    protected $current = array();
+    protected $next = array();
 
     public function __construct()
     {
+        if (!isset($_SESSION)) session_start();
         $k = get_called_class();
         if ( ! isset($_SESSION[$k]) ) {
             $_SESSION[$k] = array();
@@ -51,7 +54,7 @@ class Flash implements IteratorAggregate, ArrayAccess
 
     public static function ok($msg)
     {
-        self::__callStatic(__FUNCTION__, $msg);
+        self::success($msg);
     }
 
     public static function success($msg)

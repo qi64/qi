@@ -60,6 +60,16 @@ class RxTest extends \PHPUnit_Framework_TestCase
         $e['id'] = '23';
         $this->assertEquals($e, Rx::match('resource/edit/23', $route));
     }
+    
+    public function testIdWithDot()
+    {
+        $route = '/resource/edit/:id';
+        $e = Rx::$DEFAULT_MATCH;
+        $e['controller'] = 'resource';
+        $e['view'] = 'edit';
+        $e['id'] = 'teste.com.br';
+        $this->assertEquals($e, Rx::match('resource/edit/teste.com.br', $route));
+    }
 
     public function testAction()
     {

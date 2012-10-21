@@ -55,7 +55,11 @@ class Path
     {
         if ($_SERVER['argc'] <= 1) return '';
         $args = array_slice($_SERVER['argv'], 1); // skip file path
-        return implode('/', $args);
+        $path = array_shift($args);
+        if ( in_array($path, array('GET', 'POST', 'PUT', 'DELETE')) ) {
+            return array_shift($args);
+        }
+        return $path;
     }
 
     public static function isCommandLine()

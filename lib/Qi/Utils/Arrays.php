@@ -24,7 +24,7 @@ class Arrays
      * @param array $b
      * @return array
      */
-    public static function merge_intersect(array $a, array $b)
+    public static function mergeIntersect(array $a, array $b)
     {
         return array_merge($a, array_intersect_key($b, $a));
     }
@@ -54,6 +54,26 @@ class Arrays
         $result = array();
         foreach($array as $row) {
             $result[$row[$key]] = $row;
+        }
+        return $result;
+    }
+
+    /**
+     * Same as indexBy, but accumulate in array
+     * @static
+     * @param $array
+     * @param $key
+     * @return array
+     */
+    public static function groupBy($array, $key)
+    {
+        $result = array();
+        foreach($array as $row) {
+            $k = $row[$key];
+            if ( ! isset($result[$k]) ) {
+                $result[$k] = array();
+            }
+            $result[$k][] = $row;
         }
         return $result;
     }
@@ -97,5 +117,41 @@ class Arrays
             }
         }
         return $result;
+    }
+
+    public static function groupCount($array)
+    {
+        $group = array();
+        foreach($array as $item) {
+            @$group[$item]++;
+        }
+        return $group;
+    }
+
+    /**
+     * Returns only local vars from get_defined_vars
+     * @usage Arrays::removeGlobals(get_defined_vars());
+     * @static
+     * @param $array
+     * @return array
+     */
+    public static function removeGlobals(array $array)
+    {
+        return @array_diff( $array, array(array()) );
+    }
+
+    /**
+     * Converts array(1,2,array(3,4, array(5,6,7), 8), 9); into:
+     *          array(1,2,      3,4,       5,6,7,  8,  9);
+     * @static
+     * @param $array
+     * @return array
+     */
+    public static function flatten(array $array) {
+        $flat = array();
+        array_walk_recursive($array, function ($v, $k) use (&$flat) {
+            is_numeric($k) ? $flat[] = $v : $flat[$k] = $v;
+        });
+        return $flat;
     }
 }

@@ -5,7 +5,10 @@
  */
 spl_autoload_register (function ($class) {
 	$file = str_replace ('\\', DIRECTORY_SEPARATOR, ltrim ($class, '\\')) . '.php';
-	if (file_exists (__DIR__ . DIRECTORY_SEPARATOR . $file)) {
+    if (
+	    stream_resolve_include_path(__DIR__ . DIRECTORY_SEPARATOR . $file) ||
+        stream_resolve_include_path($file)
+       ) {
 		require_once $file;
 		return true;
 	}

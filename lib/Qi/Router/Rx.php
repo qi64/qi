@@ -2,6 +2,9 @@
 
 namespace Qi\Router;
 
+/**
+ * Translates a path into an array like $DEFAULT_MATCH
+ */
 class Rx
 {
     // translate url patterns to regular expressions
@@ -37,18 +40,32 @@ class Rx
         return "!^$pattern$!";
     }
 
+    /**
+     * Try path against all $routes until finds a match
+     * @static
+     * @param $path
+     * @param $routes
+     * @param array $default
+     * @return array|null
+     */
     public static function route($path, $routes, $default = array())
     {
         foreach($routes as $route => $handler) {
-            if (is_numeric($route)) $route = $handler;
+            if (is_numeric($route)) $route = $handler; // no callaback
             $match = self::match($path, $route, $default);
-            if ($match !== null) return array($match, $handler, $route, $default);
+            if ($match !== null) {
+                if ( is_array($handler) ) $match = array_merge($match, $handler);
+                elseif ( is_callable($handler) ) $match['handler'] = $handler;
+                $match['route'] = $route;
+                return $match;
+            }
         }
         return null;
     }
 
     /**
-    * Match a path to a route string rule
+    * Match a path to a single route string rule
+    * @return array|null
     */
     public static function match($path, $route, $default = array())
     {
@@ -57,6 +74,7 @@ class Rx
         if ( ! preg_match($pattern, $path, $matches) ) {
             return null;
         }
+        // remove numeric keys
         foreach($matches as $k => $v) {
             if (is_numeric($k)) {
                 unset($matches[$k]);

@@ -1,7 +1,7 @@
 <?php
 
 namespace Qi\Utils;
-use DOMDocument;
+use DOMDocument, DomainException;
 
 class Html
 {
@@ -16,7 +16,24 @@ class Html
         return $doc->saveHTML();
     }
 
-    public static function google_analytics($code)
+    public static function renderFile($__FILE__, $__VARS__ = array())
+    {
+        if ( ! stream_resolve_include_path($__FILE__) ) {
+            $msg = "included file '$__FILE__' not found.";
+            throw new DomainException($msg); // @TODO TplMissingException
+        }
+        extract($__VARS__);
+        ob_start();
+        include $__FILE__;
+        return ob_get_clean();
+    }
+
+    public static function p($s)
+    {
+        return htmlspecialchars((string)$s);
+    }
+
+    public static function googleAnalytics($code)
     {
         return <<<S
 <script type="text/javascript">

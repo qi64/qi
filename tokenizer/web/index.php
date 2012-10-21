@@ -2,7 +2,7 @@
 use Qi\Tokenizer\Tokenizer;
 $ROOT = dirname(dirname(__DIR__));
 require_once "$ROOT/lib/autoload.php";
-$html = Tokenizer::html( file_get_contents("$ROOT/bin/all_tokens.fixture.php") );
+$html = Tokenizer::html( file_get_contents("$ROOT/tokenizer/bin/all_tokens.fixture.php") );
 ?>
 <!DOCTYPE html>
 <html>
