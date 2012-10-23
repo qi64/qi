@@ -9,6 +9,7 @@ class Auth
 {
     protected $sessionKey;
     protected $data = array();
+    protected static $singleton;
 
     public function __construct($sessionKey = null)
     {
@@ -17,6 +18,12 @@ class Auth
         $this->sessionKey = $sessionKey;
         if ($this->isLogged())
             $this->data = $_SESSION[$this->getSessionKey()];
+    }
+
+    public static function singleton()
+    {
+        if (! self::$singleton) self::$singleton = new self;
+        return self::$singleton;
     }
 
     public function getSessionKey()
