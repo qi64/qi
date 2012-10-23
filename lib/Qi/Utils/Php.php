@@ -42,7 +42,9 @@ class Php
     public static function curl_get_contents($url)
     {
         if (ini_get('allow_url_fopen')) return file_get_contents($url);
-
+        if ( ! extension_loaded('curl') ) {
+            throw new RuntimeException('no remote access, allow_url_fopen=off and not curl.');
+        }
         $curl = curl_init();
 
         curl_setopt($curl, CURLOPT_URL, $url);
