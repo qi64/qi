@@ -50,7 +50,8 @@ class Path
     {
         $path = trim($path, self::PATH_TRIM);
         $path = preg_replace('!/+!', '/', $path); // collapse double slashs
-        return urldecode($path);
+        $path = urldecode($path);
+        return strtolower($path);
     }
 
     public static function fromCommandLine()

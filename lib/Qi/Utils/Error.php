@@ -37,7 +37,7 @@ class Error
 
     public static function disable($error)
     {
-    	self::push(error_reporting() ^ $error);
+    	self::push(error_reporting() & ~$error);
     }
 
     public static function str($error)

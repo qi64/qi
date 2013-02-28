@@ -124,7 +124,11 @@ class App
                     if (stream_resolve_include_path($viewName)) break;
                 }
             }
-            $env->template = Html::renderFile($viewName, $env->vars);
+            try {
+                $env->template = Html::renderFile($viewName, $env->vars);
+            } catch (\Qi\Ex\ExTplMissing $e) {
+                $env->template = $e->getMessage();
+            }
         };
     }
 

@@ -108,6 +108,16 @@ class Pdo extends \PDO
         return array( implode(', ', $keys), implode(', :', $keys));
     }
 
+    public function save($table, $data)
+    {
+        if ( isset($data['id']) ) {
+            $count = $this->update($table, $data, array('id' => $data['id']));
+            if (!$count) $this->insert($table, $data);
+        }else{
+            $this->insert($table, $data);
+        }
+    }
+
     public function insert($table, $data, $or = null)
     {
         $stmt = $this->prepareInsertOrReplace($table, $data, $or);

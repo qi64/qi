@@ -1,7 +1,10 @@
 <?php
 
 namespace Qi\Utils;
-use DOMDocument, DomainException;
+use DOMDocument,
+    Qi\Ex\ExTplMissing,
+    Qi\Ex\ExRender,
+    Qi\Utils\Error;
 
 class Html
 {
@@ -16,16 +19,33 @@ class Html
         return $doc->saveHTML();
     }
 
-    public static function renderFile($__FILE__, $__VARS__ = array())
+    public static function renderFile($__FILE__, $__VARS__ = array(), $disable_error = E_NOTICE)
     {
         if ( ! stream_resolve_include_path($__FILE__) ) {
             $msg = "included file '$__FILE__' not found.";
-            throw new DomainException($msg); // @TODO TplMissingException
+            $ex = new ExTplMissing($msg);
+            $ex->file = $__FILE__;
+            $ex->vars = $__VARS__;
+            throw $ex;
         }
-        extract($__VARS__);
+
+        extract((array)$__VARS__);
         ob_start();
-        include $__FILE__;
-        return ob_get_clean();
+
+        try {
+            if ($disable_error) Error::disable($disable_error);
+            include $__FILE__;
+            if ($disable_error) Error::pop();
+            return ob_get_clean();
+
+        }catch (\Exception $e) {
+            if ($disable_error) Error::pop();
+            $ex = new ExRender("error on rendering '$__FILE__': ".$e->getMessage(), 0, $e);
+            $ex->file = $__FILE__;
+            $ex->vars = $__VARS__;
+            $ex->output = ob_get_clean();
+            throw $ex;
+        }
     }
 
     public static function p($s)
