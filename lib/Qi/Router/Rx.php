@@ -1,7 +1,7 @@
 <?php
 
 namespace Qi\Router;
-
+use Qi\Http\Path;
 /**
  * Translates a path into an array like $DEFAULT_MATCH
  */
@@ -35,7 +35,7 @@ class Rx
     */
     public static function compile($route)
     {
-        $route = self::format_path($route);
+        $route = Path::format($route);
         $pattern = preg_replace(array_keys(self::$COMPILE_RULES), self::$COMPILE_RULES, $route);
         return "!^$pattern$!";
     }
@@ -69,7 +69,7 @@ class Rx
     */
     public static function match($path, $route, $default = array())
     {
-        $path = self::format_path($path);
+        $path = Path::format($path);
         $pattern = self::compile($route);
         if ( ! preg_match($pattern, $path, $matches) ) {
             return null;
@@ -83,9 +83,12 @@ class Rx
         $matches = array_merge(self::$DEFAULT_MATCH, $default, $matches);
         return $matches;
     }
-
-    public static function format_path($path)
+    
+    public static function replace($path, $data)
     {
-        return trim($path, '/'); // ignore slashes at begin/end.
+        return preg_replace_callback("!:(\w+)!", function($match) use ($data) {
+            list($full, $name) = $match;
+            return @$data[$name];
+        }, $path);
     }
 }

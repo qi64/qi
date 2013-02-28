@@ -3,11 +3,13 @@
 namespace Qi\Db;
 use Qi\Utils\Arrays;
 
-class Pdo extends \Pdo
+class Pdo extends \PDO
 {
+    protected static $instance;
     protected $dsn = '';
     public $lastQuery = '';
     public $queryHistory = array();
+
     public function __construct($dsn, $username = null, $passwd = null, $options = null)
     {
         parent::__construct($dsn, $username, $passwd, $options);
@@ -15,35 +17,35 @@ class Pdo extends \Pdo
         $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $this->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         $this->setAttribute(PDO::ATTR_STATEMENT_CLASS, array('\Qi\Db\PdoStatement'));
+        //$this->setAttribute(Pdo::MYSQL_ATTR_USE_BUFFERED_QUERY, false); // permite executar query com milhares de registros
+        //$this->setAttribute(PDO::ATTR_EMULATE_PREPARES, false); // retorna erro ao preparar a query ao invés de apenas quando executá-la.
+    }
+
+    public static function dsn($host, $db)
+    {
+        return "mysql:host=$host;dbname=$db;charset=utf8";
+    }
+
+    /**
+     * @param $host
+     * @param $db
+     * @param $username
+     * @param $passwd
+     * @return Pdo
+     */
+    public static function connect($host, $db, $username, $passwd)
+    {
+        if (self::$instance) return self::$instance;
+        $class = get_called_class();
+        return self::$instance = new $class(self::dsn($host, $db), $username, $passwd);
     }
 
     public function prepare($statement, $driver_options = array())
     {
         $stmt = parent::prepare($statement, $driver_options);
+        // desligar o queryHistory quando for fazer muitos prepare, para não estourar a memória
         $this->queryHistory[] = $this->lastQuery = $stmt->queryString;
         return $stmt;
-    }
-
-    public function dropTable($name)
-    {
-        $this->exec("DROP TABLE IF EXISTS $name");
-        return $this;
-    }
-
-    public function createTable($name, $columns = array())
-    {
-        if ( is_array($columns) ) {
-            $fields = array();
-            foreach($columns as $k => $v) {
-                $fields[] = is_numeric($k) ? $v : "$k $v";
-            }
-            $fields = implode(",\n", $fields);
-        }else{
-            $fields = $columns;
-        }
-        $sql = "CREATE TABLE IF NOT EXISTS $name (\n$fields\n)";
-        $this->exec($sql);
-        return $this;
     }
 
     public function select($sql, $params = array())
@@ -73,7 +75,7 @@ class Pdo extends \Pdo
 
     public function count($table, $where = '1')
     {
-        return $this->queryValue("SELECT count(*) FROM $table WHERE $where");
+        return $this->queryValue("SELECT count(*) FROM `$table` WHERE $where");
     }
 
     public function queryValue($sql, $params = array())
@@ -82,15 +84,34 @@ class Pdo extends \Pdo
         return reset($row);
     }
 
-    public function buildFieldValues($data)
+    /**
+     * Retorna um array de valores ao invés de rows
+     * @param $sql
+     * @param array $params
+     * @return array
+     */
+    public function queryValues($sql, $params = array())
     {
-        $keys = array_keys($data);
+        $stmt = call_user_func_array(array($this, 'select'), func_get_args());
+        $values = array();
+        foreach($stmt as $row) {
+            $values[] = reset($row);
+        }
+        return $values;
+    }
+
+    public function buildFieldValues($keys)
+    {
+        if ($keys != array_values($keys)) {
+            $keys = array_keys($keys);
+        }
         return array( implode(', ', $keys), implode(', :', $keys));
     }
 
     public function insert($table, $data, $or = null)
     {
-        $this->prepareInsertOrReplace($table, $data, $or)->execute($data);
+        $stmt = $this->prepareInsertOrReplace($table, $data, $or);
+        $stmt->execute($data);
         return $this->lastInsertId();
     }
 
@@ -115,7 +136,7 @@ class Pdo extends \Pdo
             $whereData = array_slice($whereData, 3);
             $whereData = Arrays::flatten($whereData);
         }
-        $sql = "UPDATE $table SET\n$fields\nWHERE $where";
+        $sql = "UPDATE `$table` SET\n$fields\nWHERE $where";
         $stmt = $this->prepare($sql);
         $stmt->execute($whereData);
         return $stmt->rowCount();
@@ -127,10 +148,45 @@ class Pdo extends \Pdo
         return $this->lastInsertId();
     }
 
-    protected function prepareInsertOrReplace($table, $data, $or = null, $type = "INSERT")
+    public function prepareInsertOrReplace($table, $data, $or = null, $type = "INSERT")
     {
         if ($or) $or = " OR $or";
-        $sql = vsprintf("$type$or INTO $table (%s) VALUES (:%s)", $this->buildFieldValues($data));
+        $sql = vsprintf("$type$or INTO `$table` (%s) VALUES (:%s)", $this->buildFieldValues($data));
         return $this->prepare($sql);
+    }
+
+    // TABLE TOOLS METHODS ============================================================================
+    // migrar estes métodos para sua própria classe
+
+    public function dropTable($name)
+    {
+        $this->exec("DROP TABLE IF EXISTS `$name`");
+        return $this;
+    }
+
+    public function createTable($name, $columns = array())
+    {
+        if ( is_array($columns) ) {
+            $fields = array();
+            foreach($columns as $k => $v) {
+                $fields[] = is_numeric($k) ? $v : "$k $v";
+            }
+            $fields = implode(",\n", $fields);
+        }else{
+            $fields = $columns;
+        }
+        $sql = "CREATE TABLE IF NOT EXISTS `$name` (\n$fields\n)";
+        $this->exec($sql);
+        return $this;
+    }
+
+    public function createIndex($table, $column)
+    {
+        return $this->exec("CREATE INDEX `$column` ON `$table` (`$column`)");
+    }
+
+    public function dropIndex($table, $column)
+    {
+        return $this->exec("DROP INDEX `$column` ON `$table`");
     }
 }

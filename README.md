@@ -1,8 +1,9 @@
 # Qi (Chi) lib
 It's not a framework, just a collection of utilities.
-*PHP >= 5.3 only!*
+*PHP >= 5.3.2 only!*
 
 ## Features (Chi Mantra)
+- Don't try to rewrite PHP. No need for a Request object, if its all there at $_REQUEST
 - Tested with phpunit (help me to 100% cover).
 - Full NameSpaced: namespace Qi\*;
 - Dead Simple to Use, just require 'lib/autoload.php'; and you're ready to go.

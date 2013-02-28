@@ -4,6 +4,7 @@ namespace Qi\Utils;
 
 class Error
 {
+    protected static $stack = array();
     /**
      * restore_error_handler()
      */
@@ -20,12 +21,23 @@ class Error
 
     public static function enable($error)
     {
-    	error_reporting(error_reporting() | $error);
+        self::push(error_reporting() | $error);
+    }
+
+    public static function push($error)
+    {
+        self::$stack[] = error_reporting();
+        error_reporting($error);
+    }
+
+    public static function pop()
+    {
+        error_reporting(array_pop(self::$stack));
     }
 
     public static function disable($error)
     {
-    	error_reporting(error_reporting() ^ $error);
+    	self::push(error_reporting() ^ $error);
     }
 
     public static function str($error)

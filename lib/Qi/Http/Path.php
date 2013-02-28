@@ -11,7 +11,7 @@ class Path
         if ( self::isCommandLine() ) {
             $path = self::fromCommandLine();
         }
-        elseif ( isset($_SERVER['PATH_INFO']) ) {
+        elseif ( @$_SERVER['PATH_INFO'] ) {
             $path = $_SERVER['PATH_INFO'];
         }
         else {
@@ -37,11 +37,13 @@ class Path
     * @return string the path from where the php controller is running.
     *                empty when the PATHINFO_DIRNAME is not present at
     *                the beginning of REQUEST_URI
+    * Funciona tanto para /api/index.php, /api/ e /api
     */
     public static function base()
     {
         $dir = pathinfo($_SERVER['SCRIPT_NAME'], PATHINFO_DIRNAME);
-        return strpos($_SERVER['REQUEST_URI'], $dir.'/') === 0 ? $dir : '';
+        $uri = rtrim($_SERVER['REQUEST_URI'], '/');
+        return strpos("$uri/", "$dir/") === 0 ? $dir : '';
     }
 
     public static function format($path)

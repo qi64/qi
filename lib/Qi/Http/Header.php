@@ -52,6 +52,11 @@ class Header
         exit;
     }
 
+    public static function refresh()
+    {
+        self::location();
+    }
+
     public static function back()
     {
         $url = @$_SERVER['HTTP_REFERER'] ?: $_SERVER['REQUEST_URI'];

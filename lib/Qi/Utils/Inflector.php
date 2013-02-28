@@ -2,7 +2,9 @@
 
 namespace Qi\Utils;
 
-
+/**
+ * mb_internal_encoding('UTF-8');
+ */
 class Inflector
 {
     protected static $normalize_translation;

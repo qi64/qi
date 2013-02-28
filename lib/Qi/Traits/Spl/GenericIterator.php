@@ -39,6 +39,6 @@ trait GenericIterator
         $this->key = $this->valid ? $this->key + 1 : -1;
     }
 
-    abstract protected function each();
-    abstract protected function reset();
+    protected function each() {}
+    protected function reset() {}
 }
