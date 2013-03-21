@@ -5,6 +5,7 @@ use DOMDocument,
     Qi\Ex\ExTplMissing,
     Qi\Ex\ExRender,
     Qi\Utils\Error;
+use Qi\Html\ISafe;
 
 class Html
 {
@@ -19,37 +20,58 @@ class Html
         return $doc->saveHTML();
     }
 
-    public static function renderFile($__FILE__, $__VARS__ = array(), $disable_error = E_NOTICE)
+    /**
+     * @TODO too much responsible
+     * @param $file
+     * @param array $vars
+     * @param int $disable_error
+     * @param null $callable
+     * @return null|string
+     * @throws \Qi\Ex\ExRender
+     */
+    public static function renderFile($file, $vars = array(), $disable_error = E_NOTICE, $callable = null)
     {
-        if ( ! stream_resolve_include_path($__FILE__) ) {
-            $msg = "included file '$__FILE__' not found.";
-            $ex = new ExTplMissing($msg);
-            $ex->file = $__FILE__;
-            $ex->vars = $__VARS__;
-            throw $ex;
+        if ($callable === null && ! is_callable($file) && ! stream_resolve_include_path($file) ) {
+            return null;
         }
 
-        extract((array)$__VARS__);
         ob_start();
 
         try {
             if ($disable_error) Error::disable($disable_error);
-            include $__FILE__;
+
+            if ( is_callable($callable) ) {
+                $callable($file, $vars);
+            }elseif ( is_callable($file) ) {
+                $file($vars);
+            }elseif ( is_callable($vars) ) {
+                $vars($file);
+            }else{
+                self::includeFile($file, $vars);
+            }
+
             if ($disable_error) Error::pop();
             return ob_get_clean();
 
         }catch (\Exception $e) {
             if ($disable_error) Error::pop();
-            $ex = new ExRender("error on rendering '$__FILE__': ".$e->getMessage(), 0, $e);
-            $ex->file = $__FILE__;
-            $ex->vars = $__VARS__;
+            $ex = new ExRender("error on rendering '$file': ".$e->getMessage(), 0, $e);
+            $ex->file = $file;
+            $ex->vars = $vars;
             $ex->output = ob_get_clean();
             throw $ex;
         }
     }
 
+    protected static function includeFile($__FILE__, $__VARS__ = array())
+    {
+        extract((array)$__VARS__);
+        include $__FILE__;
+    }
+
     public static function p($s)
     {
+        if ($s instanceof ISafe) return (string)$s;
         return htmlspecialchars((string)$s);
     }
 

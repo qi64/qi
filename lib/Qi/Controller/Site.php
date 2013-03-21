@@ -1,24 +1,21 @@
 <?php
 
 namespace Qi\Controller;
+
 use Qi\Utils\Error,
-    Qi\Http\Path;
+    Qi\Http\Path,
+    Qi\Utils\Html;
 
 class Site
 {
     public function run()
     {
         $path = Path::current() ?: 'home';
-        ob_start();
-        Error::disable(E_NOTICE);
-        include "paginas/$path.php";
-        Error::pop();
-        $TPL = ob_get_clean();
+        $tplPath = "$path.php";
+        $TPL = Html::renderFile($tplPath) ?: Html::renderFile("404.php");
 
-        ob_start();
-        Error::disable(E_NOTICE);
-        include 'paginas/_layout.php';
-        Error::pop();
-        return ob_get_clean();
+        $tplPath = "_layout.php";
+        $vars = array('TPL' => $TPL);
+        return Html::renderFile($tplPath, $vars) ?: "Faltando layout: $tplPath";
     }
 }

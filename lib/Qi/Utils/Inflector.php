@@ -92,4 +92,11 @@ class Inflector
         $s = preg_replace('!\s+!', '', $s);
         return $s;
     }
+
+    public static function titleize($s)
+    {
+        $s = preg_replace('!_|-!', ' ', $s);
+        $s = ucwords($s);
+        return $s;
+    }
 }

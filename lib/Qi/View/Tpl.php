@@ -7,6 +7,15 @@ use DomainException,
 
 class Tpl
 {
+    public function __invoke($__FILE__ = null, $__VARS__ = array())
+    {
+        if ( ! stream_resolve_include_path($__FILE__) ) {
+            return null;
+        }
+        extract((array)$__VARS__);
+        include $__FILE__;
+    }
+    /*
     public $template = 'layout';
     public $tplMask = '';
 
@@ -29,6 +38,7 @@ class Tpl
     {
         return sprintf($this->tplMask, $path);
     }
+
 
     public function __toString()
     {
@@ -54,16 +64,32 @@ class Tpl
 
     public function render()
     {
-        extract($this->getVars());
+        if ( ! stream_resolve_include_path($this->getFile()) ) {
+            return null;
+        }
+
         ob_start();
-        //$this->pushPath($__FILE__);
-        include $this->getFile();
-        //$this->popPath();
-        return ob_get_clean();
+
+        try {
+            if ($this->disable_error) Error::disable($this->disable_error);
+            $this->includeFile();
+            if ($this->disable_error) Error::pop();
+            return ob_get_clean();
+
+        }catch (\Exception $e) {
+            if ($this->disable_error) Error::pop();
+            $ex = new ExRender("error on rendering '$__FILE__': ".$e->getMessage(), 0, $e);
+            $ex->file = $this->getFile();
+            $ex->vars = $this->vars;
+            $ex->output = ob_get_clean();
+            throw $ex;
+        }
     }
 
-    public function pushPath()
+    protected function includeFile()
     {
-
+        extract($this->getLocalVars());
+        include $this->getFile();
     }
+    */
 }

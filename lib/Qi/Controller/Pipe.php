@@ -1,32 +1,41 @@
 <?php
 
 namespace Qi\Controller;
+use ArrayIterator;
 
-class Pipe
+class Pipe extends ArrayIterator
 {
     public $env;
-    public $queue = array();
+    public $runtimes = array();
 
     public function __construct()
     {
         $this->env = new \stdClass();
+        $this->env->runtimes = &$this->runtimes;
     }
 
     public function run()
     {
-        $this->env->runtimes = array();
-        $this->env->runtimes['start'] = round(microtime(true) - APP_START, 4) * 1000;
+        // @TODO better start definition
+        $before = $_SERVER['REQUEST_TIME_FLOAT'];
 
-        foreach($this->queue as $name => $closure) {
+        $this->measure($before);
+
+        foreach($this as $name => $closure) {
+            error_log($name);
             $before = microtime(true);
             $closure($this->env);
-            $this->env->runtimes[$name] = round(microtime(true) - $before, 4) * 1000;
+            $this->measure($before, $name);
         }
     }
 
-    protected function validateTraversable($var)
+    protected function measure($before, $name = 'start')
     {
-        if (is_array($var) || $var instanceof \Traversable) return;
-        throw new \DomainException("array or Traversable required, got $var");
+        $this->runtimes[$name] = $this->elapse($before);
+    }
+
+    protected function elapse($before)
+    {
+        return round(microtime(true) - $before, 5) * 1000;
     }
 }

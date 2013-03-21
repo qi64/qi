@@ -5,19 +5,27 @@ namespace Qi\Http;
 class Header
 {
     public static $CHARSET = 'utf-8'; // 'iso-8859-1'
+
+    public static function header($header, $value = null)
+    {
+        if ( headers_sent() ) return;
+        if ($value !== null) $header = "$header: $value";
+        header($header);
+    }
+
     /*
      * $v can be: IE6, IE7 or IE8
      * http://www.chromium.org/developers/how-tos/chrome-frame-getting-started
      */
     public static function gcf($v = 1)
     {
-        header("X-UA-Compatible: chrome=$v");
+        self::header("X-UA-Compatible", "chrome=$v");
     }
 
     public static function content_type($type, $charset = null)
     {
         if (!$charset) $charset = self::$CHARSET;
-        header("Content-Type: $type; charset=$charset");
+        self::header("Content-Type", "$type; charset=$charset");
     }
 
     public static function html($charset = null)
@@ -48,7 +56,7 @@ class Header
     public static function location($url = null)
     {
         if (!$url) $url = $_SERVER['REQUEST_URI']; // refresh to the current page
-        header("Location: $url");
+        self::header("Location", $url);
         exit;
     }
 
@@ -66,14 +74,14 @@ class Header
     public static function notFound()
     {
         $status = @$_SERVER['SERVER_PROTOCOL'] ?: 'HTTP/1.1';
-        header("$status 404 Not Found");
+        self::header("$status 404 Not Found");
     }
 
     public static function noCache()
     {
-        header('Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0');
-        header('Pragma: no-cache');
-        header("Expires: -1");
+        self::header('Cache-Control', 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0');
+        self::header('Pragma', 'no-cache');
+        self::header('Expires',  '-1');
         //header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");
     }
 
@@ -95,8 +103,8 @@ class Header
 
     public static function authorization_required($realm = 'Authorization Required')
     {
-        header("WWW-Authenticate: Basic realm='$realm'");
-        header("$_SERVER[SERVER_PROTOCOL] 401 Unauthorized");
+        self::header('WWW-Authenticate', "Basic realm='$realm'");
+        self::header("$_SERVER[SERVER_PROTOCOL] 401 Unauthorized");
         die($realm);
     }
 }

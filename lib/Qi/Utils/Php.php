@@ -2,8 +2,12 @@
 
 namespace Qi\Utils;
 
+use RuntimeException;
+
 class Php
 {
+    public static $fatal_error_handler = array(__CLASS__, 'fatal_error_handler');
+
     public static function fileStack($limit = 0)
     {
         $backtrace = debug_backtrace(
@@ -36,7 +40,7 @@ class Php
             // error with open_basedir
             if (@is_writable($dir)) return $dir;
         }
-        throw new \RuntimeException("no writeable tmp_dir");
+        throw new RuntimeException("no writeable tmp_dir");
     }
 
     public static function curl_get_contents($url)
@@ -60,5 +64,35 @@ class Php
         curl_close($curl);
 
         return $data;
+    }
+
+    public static function ob_start()
+    {
+        ob_start( array(__CLASS__, 'ob_start_callback') );
+    }
+
+    public static function ob_start_callback($output)
+    {
+        $error = error_get_last();
+        if ( @$error['type'] == E_ERROR ) {
+            preg_match("!Call Stack:\n(.+)$!sim", $output, $matches);
+            $error['backtrace'] = rtrim(end($matches));
+            $callback = self::$fatal_error_handler;
+            return $callback($error);
+        } else {
+            return $output;
+        }
+    }
+
+    public static function fatal_error_handler($error)
+    {
+        @header("Content-Type: text/plain");
+        return sprintf(
+            "%s\n%s:%s\n%s",
+            $error['message'],
+            $error['file'],
+            $error['line'],
+            $error['backtrace']
+        );
     }
 }

@@ -11,6 +11,7 @@ class IncludePath
 
     public static function set($paths)
     {
+        if (func_num_args() > 1) $paths = func_get_args();
         if (is_array($paths)) $paths = implode(PATH_SEPARATOR, $paths);
         set_include_path($paths);
     }
@@ -23,5 +24,5 @@ class IncludePath
     public static function prepend($path)
     {
         set_include_path($path.PATH_SEPARATOR.get_include_path());
-    }	
+    }
 }

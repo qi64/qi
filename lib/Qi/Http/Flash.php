@@ -3,6 +3,11 @@
 namespace Qi\Http;
 use ArrayIterator, IteratorAggregate, ArrayAccess;
 
+/**
+ * @TODO don't save on session when empty
+ * Class Flash
+ * @package Qi\Http
+ */
 class Flash implements IteratorAggregate, ArrayAccess
 {
     protected static $singleton;
@@ -12,10 +17,11 @@ class Flash implements IteratorAggregate, ArrayAccess
     public function __construct()
     {
         if (!isset($_SESSION)) session_start();
-        $k = get_called_class();
+        $k = 'env.flash';
         if ( ! isset($_SESSION[$k]) ) {
             $_SESSION[$k] = array();
         }
+        // always rotate flash messages, even when not used
         $this->current = $_SESSION[$k];
         $_SESSION[$k] = array();
         $this->next = &$_SESSION[$k];
@@ -67,6 +73,23 @@ class Flash implements IteratorAggregate, ArrayAccess
         $msg = (array)$msg; // accept message as string too
         $flash = self::singleton();
         $flash[$label] = reset($msg);
+    }
+
+    public function __set($name, $var)
+    {
+        $this->__call($name, array($var));
+    }
+
+    public function __get($method)
+    {
+        if ($method == 'ok') $method = 'success';
+        return $this->offsetGet($method);
+    }
+
+    public function __call($method, $args)
+    {
+        if ($method == 'ok') $method = 'success';
+        $this->offsetSet($method, reset($args));
     }
 
     public function offsetExists($offset)

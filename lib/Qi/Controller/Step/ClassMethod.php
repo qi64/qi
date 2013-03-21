@@ -6,37 +6,37 @@ use Qi\Utils\Inflector;
 class ClassMethod
 {
     public $config = array(
-        'namespaceMask' => 'App\\Controller\\%s',
-        'classMask' => '%sController',
-        'methodMask' => "%s_%s" // get_index
+        'classMethod.namespaceMask' => 'App\\Controller\\%s\\',
+        'classMethod.classMask' => '%sController',
+        'classMethod.methodMask' => "%s_%s" // get_index
     );
 
     public function __construct($config = array())
     {
-        $this->config = array_merge($this->config, $config);
+        $this->config = array_merge($this->config, array_intersect_key($config, $this->config));
     }
 
     public function __invoke($env)
     {
-        $env->className = $this->getNamespace($env->namespace).'\\'.$this->getClassName($env->controller);
+        $env->className = $this->getNamespace(@$env->namespace).$this->getClassName($env->controller);
         $env->methodName = $this->getMethodName($env->method, $env->action);
     }
 
     protected function getNamespace($namespace)
     {
-        return sprintf($this->config['namespaceMask'], Inflector::classify($namespace));
+        return sprintf($this->config['classMethod.namespaceMask'], Inflector::classify($namespace));
     }
 
     protected function getClassName($controller)
     {
-        return sprintf($this->config['classMask'], Inflector::classify($controller));
+        return sprintf($this->config['classMethod.classMask'], Inflector::classify($controller));
     }
 
     protected function getMethodName($method, $action)
     {
         return strtolower(
             sprintf(
-                $this->config['methodMask'],
+                $this->config['classMethod.methodMask'],
                 Inflector::classify($method),
                 Inflector::classify($action))
         );

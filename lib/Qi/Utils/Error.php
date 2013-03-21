@@ -19,6 +19,14 @@ class Error
         });
     }
 
+    public static function enableDefaultExceptionHandler()
+    {
+        set_exception_handler(function($e) {
+            @header("Content-Type: text/plain");
+            echo $e;
+        });
+    }
+
     public static function enable($error)
     {
         self::push(error_reporting() | $error);

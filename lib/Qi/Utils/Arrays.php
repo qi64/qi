@@ -18,6 +18,26 @@ class Arrays
     }
 
     /**
+     * fix PHP's array_merge_recursive, that duplicates keys
+     * @param array $array1
+     * @param array $array2
+     * @return array
+     */
+    public static function merge($array1, $array2)
+    {
+        $array2 = is_array($array2) ? $array2 : array();
+        $merged = is_array($array1) ? $array1 : array();
+
+        foreach ( $array2 as $key => &$value )
+            if ( is_array($value) && isset($merged[$key]) && is_array($merged[$key]) )
+                $merged[$key] = static::merge($merged[$key], $value);
+            else
+                $merged[$key] = $value;
+
+        return $merged;
+    }
+
+    /**
      * Merge 2 arrays taking the values from b but only the keys from a.
      * @static
      * @param array $a
@@ -153,5 +173,21 @@ class Arrays
             is_numeric($k) ? $flat[] = $v : $flat[$k] = $v;
         });
         return $flat;
+    }
+
+    /**
+     * Convert array('name', 'john', 'age', 23) into array('name' => 'john', 'age' => 23)
+     * @param array $array
+     * @return array
+     */
+    public static function chunkJoin(array $array)
+    {
+        $chunks = array_chunk($array, 2);
+        $params = array();
+        foreach($chunks as $chunk) {
+            list($k, $v) = $chunk;
+            $params[$k] = $v;
+        }
+        return $params;
     }
 }
