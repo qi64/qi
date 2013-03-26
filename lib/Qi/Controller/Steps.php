@@ -6,13 +6,12 @@ use Qi\Http\Flash,
     Qi\Http\Header,
     Qi\Utils\Error,
     Qi\Utils\Php,
+    Qi\Http\Request,
     ReflectionMethod,
     ReflectionObject,
     ReflectionFunction;
 
 /**
- * @TODO migrate path/method to a Request object
- * @TODO migrate Steps to php5.4 traits
  * @TODO alias to redirect an url to another
  * @TODO custom router
  * @TODO password protect
@@ -29,6 +28,7 @@ use Qi\Http\Flash,
  * @TODO HTTP Cache https://github.com/rtomayko/rack-cache
  * @TODO Redirect static fallback to production site: https://github.com/dolzenko/rack-static_fallback/blob/master/lib/rack/static_fallback.rb
  * @TODO something for /mailer/contato /mailer/newsletter
+ * @TODO migrate Steps to php5.4 traits
  * Class Steps
  * @package Qi\Controller
  */
@@ -36,7 +36,6 @@ class Steps
 {
     // @TODO migrate cfg to class for auto_complete support
     public static $cfg_defaults = array(
-        'method_param_name' => '_method',
         'default_controller_name' => 'default',
         'default_action_name' => 'index',
         'fallback_action_name' => 'default',
@@ -45,6 +44,7 @@ class Steps
         'layout_name' => 'default',
         'layout_file' => 'layout/%s.php',
         'render_disable_error' => E_NOTICE,
+        'debugbar_enabled' =>  false,
 
         'auth' => array(
             'path_login'  => 'login',
@@ -83,8 +83,7 @@ class Steps
 
         $this->pipe($pipe, 'flash');
 
-        $this->group_path($pipe);
-        $this->group_method($pipe);
+        $this->pipe($pipe, 'request');
 
         $this->pipe($pipe, 'csrf');
 
@@ -104,21 +103,6 @@ class Steps
         $this->pipe($pipe, 'debugbar');
     }
 
-    public function group_path($pipe)
-    {
-        $this->pipe($pipe, 'path_url');
-        $this->pipe($pipe, 'path_format');
-        $this->pipe($pipe, 'path_type');
-        $this->pipe($pipe, 'path_remove_base');
-    }
-
-    public function group_method($pipe)
-    {
-        $this->pipe($pipe, 'method');
-        $this->pipe($pipe, 'method_from_param');
-        $this->pipe($pipe, 'method_format');
-    }
-
     public function group_route($pipe)
     {
         $this->pipe($pipe, 'route');
@@ -130,9 +114,8 @@ class Steps
     {
         $this->pipe($pipe, 'controller_class');
         $this->pipe($pipe, 'controller_default');
-        $this->pipe($pipe, 'controller_method');
         $this->pipe($pipe, 'controller_instance');
-        $this->pipe($pipe, 'controller_method_default');
+        $this->pipe($pipe, 'controller_method');
     }
 
     public function group_closure($pipe)
@@ -163,61 +146,9 @@ class Steps
         $env->flash = Flash::singleton();
     }
 
-    public function path_url($env)
+    public function request($env)
     {
-        $env->path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-        if ($env->path == $_SERVER['SCRIPT_NAME']) $env->path = '';
-    }
-
-    public function path_format($env)
-    {
-        $path = @$env->path;
-
-        $path = trim($path, ' /\\');
-        $path = preg_replace('!/+!', '/', $path); // collapse double slashs
-        $path = urldecode($path);
-        $path = strtolower($path);
-
-        $env->path = $path;
-    }
-
-    public function path_type($env)
-    {
-        $path = @$env->path;
-
-        if ( ! strpos($path, '.') ) return;
-        preg_match('!(.+)\.([^\./]{1,4})$!', $path, $matches);
-        @list($env->path_full, $env->path, $env->type) = $matches;
-    }
-
-    public function path_remove_base($env)
-    {
-        $path = @$env->path;
-
-        if ( ! $path ) return;
-        $base = pathinfo($_SERVER['SCRIPT_NAME'], PATHINFO_DIRNAME);
-        if ( ! $base ) return;
-        $base = trim($base, '/');
-        $dir = preg_quote($base);
-        $path = preg_replace("!^$dir/?!", '', $path, 1);
-
-        $env->path_base = $base;
-        $env->path = $path;
-    }
-
-    public function method($env)
-    {
-        $env->method = @$_SERVER['REQUEST_METHOD'] ?: 'GET';
-    }
-
-    public function method_from_param($env)
-    {
-        $env->method = @$_POST[$env->cfg['method_param_name']] ?: @$env->method;
-    }
-
-    public function method_format($env)
-    {
-        $env->method = trim(strtoupper(@$env->method));
+        $env->request = new Request();
     }
 
     /**
@@ -234,14 +165,14 @@ class Steps
         $form_token = @$_POST[$field] ?: @$_SERVER[$header];
         $token = sprintf($format,
                           $secret,
-                          $_SERVER['HTTP_USER_AGENT'],
-                          $_SERVER['REMOTE_ADDR'],
+                          @$_SERVER['HTTP_USER_AGENT'],
+                          @$_SERVER['REMOTE_ADDR'],
                           session_id()
                   );
         $token = md5($token);
         $env->csrf_token = $token;
 
-        if ( @$env->method != 'GET' && $form_token != $token ) die($fail);
+        if ( @$env->request->method != 'GET' && $form_token != $token ) die($fail);
     }
 
     public function auth_closure($env)
@@ -256,12 +187,12 @@ class Steps
         // @TODO separate admin from user
         extract($env->cfg['auth'], EXTR_SKIP);
 
-        $path = $env->path;
+        $path = $env->request->path;
         $env->user = @$_SESSION['user'];
 
         if ( preg_match("!^$path_login$!", $path) ) {
             $env->layout_name = 'login';
-            if ($env->method == 'GET') {
+            if ($env->request->method == 'GET') {
                 return;
             }else{
                 $auth_closure = $env->auth_closure;
@@ -275,7 +206,16 @@ class Steps
                 }
             }
         }
-        if ( preg_match("!^$restrict$!", $path) && isset($env->user) ) return;
+
+        if ( isset($env->user) ) return;
+
+        if (is_string($restrict)) {
+            $restrict = function($env) {
+                return preg_match("!^$restrict$!", $env->request->path);
+            };
+        }
+
+        if ( ! $restrict($env) ) return;
 
         $this->redirect($env, $path_login, array('warning' => $msg_denied));
     }
@@ -284,7 +224,7 @@ class Steps
     {
         extract($env->cfg['auth'], EXTR_SKIP);
 
-        $path = $env->path;
+        $path = $env->request->path;
 
         if ( preg_match("!^$path_logout$!", $path) ) {
             unset($_SESSION['user']);
@@ -294,8 +234,8 @@ class Steps
 
     protected function redirect($env, $url, $flash = array())
     {
-        if ( @$env->path_base ) {
-            $url = "$env->path_base/$url";
+        if ( @$env->request->base ) {
+            $url = $env->request->base."/$url";
         }
         $url = "/$url";
         foreach($flash as $level => $message) {
@@ -307,7 +247,7 @@ class Steps
     public function phpinfo($env)
     {
         $pattern = 'phpinfo/?(.*)';
-        $path = @$env->path;
+        $path = @$env->request->path;
         // @TODO make it possible to disable
         // @TODO password protect
         if ( preg_match("!^$pattern$!", $path, $matches) ) {
@@ -320,7 +260,7 @@ class Steps
 
     public function route($env)
     {
-        @list($env->controller_name, $env->action_name, $env->id) = explode('/', @$env->path, 3);
+        @list($env->controller_name, $env->action_name, $env->id) = explode('/', @$env->request->path, 3);
     }
 
     public function route_defaults($env)
@@ -371,13 +311,6 @@ class Steps
         }
     }
 
-    public function controller_method($env)
-    {
-        $action = @$env->action_name;
-        $action = strtr($action, '-.', '__');
-        $env->controller_method = sprintf("%s_%s", $env->method, $action);
-    }
-
     public function controller_instance($env)
     {
         $controller_class = @$env->controller_class;
@@ -385,12 +318,29 @@ class Steps
         $env->controller_instance = new $controller_class($env);
     }
 
-    public function controller_method_default($env)
+    public function controller_method($env)
     {
-        if ( ! method_exists($env->controller_instance, $env->controller_method) ) {
-            $env->controller_method = sprintf("%s_%s",
-                                              $env->method,
-                                              $env->cfg['fallback_action_name']);
+        $action = @$env->action_name;
+        $action = strtr($action, '-.', '__');
+        $method = $env->request->method;
+        $controller_name = $env->controller_name;
+
+        // @TODO handle reserved php names like new, private, public, class, etc
+        $methods = array();
+        $methods[] = sprintf("%s_%s", $method, $action);
+        $methods[] = sprintf("%s", $action);
+        $methods[] = sprintf("%s_%s_%s", $method, $controller_name, $action);
+        $methods[] = sprintf("%s_%s", $method, $controller_name);
+        $methods[] = sprintf("%s_%s", $controller_name, $action);
+        $methods[] = sprintf("%s", $controller_name);
+        $methods[] = sprintf("%s_%s", $method, $env->cfg['fallback_action_name']);
+        $methods[] = sprintf("%s", $env->cfg['fallback_action_name']);
+
+        foreach($methods as $method) {
+            if ( method_exists($env->controller_instance, $method) ) {
+                $env->controller_method = $method;
+                break;
+            }
         }
     }
 
@@ -427,6 +377,7 @@ class Steps
         $controller_class = @$env->controller_class;
         $controller_instance = @$env->controller_instance;
 
+        if (!$closure) return;
         if ( ! is_callable($closure) && is_object($closure) ) return;
 
         $r = isset($env->controller_instance) ? new ReflectionMethod($controller_class, $env->controller_method)
@@ -490,6 +441,11 @@ class Steps
 
     public function debugbar($env)
     {
+        if ( ! $env->cfg['debugbar_enabled'] ) return;
+        // ignore debugbar on format request like json, xml, etc.
+        if ( $env->request->format ) return;
+        $debugbar = "layout/debugbar.php";
+        if ( ! stream_resolve_include_path($debugbar) ) return;
         // @TODO enable/disable/configure
         $out = $env->tpl_output;
         unset($env->tpl_output);
@@ -497,7 +453,7 @@ class Steps
         unset($env->runtimes);
 
         Php::ob_start();
-        include 'layout/debugbar.php';
+        include $debugbar;
         $debugbar = ob_get_clean();
         $out = str_replace('</body>', "$debugbar</body>", $out);
 

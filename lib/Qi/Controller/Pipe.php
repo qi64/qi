@@ -24,7 +24,7 @@ class Pipe extends ArrayIterator
         foreach($this as $name => $closure) {
             error_log($name);
             $before = microtime(true);
-            $closure($this->env);
+            call_user_func($closure, $this->env);
             $this->measure($before, $name);
         }
     }

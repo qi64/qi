@@ -1,6 +1,11 @@
 <?php
 
+/**
+ * Based on http://www.meekro.com/
+ */
 namespace Qi\Db;
+use PDOException;
+use Qi\Ex\ExPdo;
 use Qi\Utils\Arrays;
 
 class Pdo extends \PDO
@@ -42,7 +47,11 @@ class Pdo extends \PDO
 
     public function prepare($statement, $driver_options = array())
     {
-        $stmt = parent::prepare($statement, $driver_options);
+        try {
+            $stmt = parent::prepare($statement, $driver_options);
+        }catch(PDOException $e) {
+            throw new ExPdo($statement, $e);
+        }
         // desligar o queryHistory quando for fazer muitos prepare, para não estourar a memória
         $this->queryHistory[] = $this->lastQuery = $stmt->queryString;
         return $stmt;
@@ -69,19 +78,19 @@ class Pdo extends \PDO
         $stmt = call_user_func_array(array($this, 'select'), func_get_args());
         $row = $stmt->fetch();
         $stmt->closeCursor();
-        if ($row === false) throw new \DomainException("row not found");
+        //if ($row === false) throw new \DomainException("row not found");
         return $row;
-    }
-
-    public function count($table, $where = '1')
-    {
-        return $this->queryValue("SELECT count(*) FROM `$table` WHERE $where");
     }
 
     public function queryValue($sql, $params = array())
     {
         $row = call_user_func_array(array($this, 'queryFirstRow'), func_get_args());
         return reset($row);
+    }
+
+    public function count($table, $where = '1')
+    {
+        return $this->queryValue("SELECT count(*) FROM `$table` WHERE $where");
     }
 
     /**
@@ -161,7 +170,7 @@ class Pdo extends \PDO
     public function prepareInsertOrReplace($table, $data, $or = null, $type = "INSERT")
     {
         if ($or) $or = " OR $or";
-        $sql = vsprintf("$type$or INTO `$table` (%s) VALUES (:%s)", $this->buildFieldValues($data));
+        $sql = vsprintf("$type$or INTO `$table` (\n\t%s\n)\nVALUES (\n\t:%s\n)\n", $this->buildFieldValues($data));
         return $this->prepare($sql);
     }
 
@@ -198,5 +207,25 @@ class Pdo extends \PDO
     public function dropIndex($table, $column)
     {
         return $this->exec("DROP INDEX `$column` ON `$table`");
+    }
+
+    public function exec($statement)
+    {
+        $this->queryHistory[] = $this->lastQuery = $statement;
+        try {
+            return parent::exec($statement);
+        }catch(PDOException $e) {
+            throw new ExPdo($statement, $e);
+        }
+    }
+
+    public function query($statement, $fetch = null, $a = null, $b = null, $c = null)
+    {
+        $this->queryHistory[] = $this->lastQuery = $statement;
+        try {
+            return parent::query($statement, $fetch, $a, $b, $c);
+        }catch (PDOException $e) {
+            throw new ExPdo($statement, $e);
+        }
     }
 }

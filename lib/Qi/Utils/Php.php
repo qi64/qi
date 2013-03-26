@@ -6,6 +6,9 @@ use RuntimeException;
 
 class Php
 {
+    /**
+     * @var \Closure $fatal_error_handler
+     */
     public static $fatal_error_handler = array(__CLASS__, 'fatal_error_handler');
 
     public static function fileStack($limit = 0)
@@ -94,5 +97,29 @@ class Php
             $error['line'],
             $error['backtrace']
         );
+    }
+
+    /**
+     * Check if a function is php defined (interal)
+     * @param $f string function name
+     * @return bool
+     */
+    public static function isInternalFunction($f)
+    {
+        if ( ! function_exists($f) ) return false;
+        $functions = get_defined_functions();
+        return isset($functions['internal'][$f]);
+    }
+
+    /**
+     * Check if a function is user defined
+     * @param $f string function name
+     * @return bool
+     */
+    public static function isUserFunction($f)
+    {
+        if ( ! function_exists($f) ) return false;
+        $functions = get_defined_functions();
+        return isset($functions['user'][$f]);
     }
 }

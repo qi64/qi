@@ -190,4 +190,23 @@ class Arrays
         }
         return $params;
     }
+
+    /**
+     * Returns only the keys presents o $b that are not on $a
+     * @param $a
+     * @param $b
+     * @return array
+     */
+    public static function diffKeys($a, $b)
+    {
+        $a = array_keys($a);
+        $b = array_keys($b);
+        return array_diff($a, $b);
+    }
+
+    public static function diffByKeys($a, $b)
+    {
+        $keys = static::diffkeys($a, $b);
+
+    }
 }

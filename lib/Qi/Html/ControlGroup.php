@@ -20,8 +20,15 @@ S;
     protected $_template;
 
     public $label;
-    public $help;
     public $control;
+    public $help;
+
+    public function __construct($label = null, $control = null, $help = null)
+    {
+        $this->label = $label;
+        $this->control = $control;
+        $this->help = $help;
+    }
 
     public function setTemplate($template)
     {

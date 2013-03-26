@@ -1,10 +1,9 @@
 <?php
 
-
 namespace Qi\Html;
 
-
 use ArrayIterator;
+use Qi\Utils\Php;
 use Qi\Utils\Uf;
 
 class InputFactory
@@ -27,6 +26,8 @@ class InputFactory
 
     public function input($attr = array())
     {
+        $default = array('type' => 'text');
+        $attr = array_merge($default, $attr);
         $e = new Inline();
         $e->attr = new Attr($attr);
         return $e;
@@ -99,7 +100,11 @@ class Options extends ArrayIterator
     }
 }
 
-
+/**
+ * @TODO separate a single Attr pair from a collection of Attr
+ * Class Attr
+ * @package Qi\Html
+ */
 class Attr extends ArrayIterator
 {
     public static $format = ' %s="%s"';
@@ -126,7 +131,9 @@ class Attr extends ArrayIterator
         foreach($this as $k => $v) {
             if ($v === null) continue; // ignore null values. What about false?
             if ( is_array($v) ) $v = implode(' ', $v);
-            if ( is_callable($v) && ! function_exists($v) ) $v = $v($this);
+            // ignore function callback
+            if ( is_callable($v) && ! Php::isInternalFunction($v) ) $v = $v($this);
+            if ($v === null) continue;
             $k = $this->h($k);
             $v = $this->h($v);
             $pairs[] = sprintf($this->getFormat(), $k, $v);
