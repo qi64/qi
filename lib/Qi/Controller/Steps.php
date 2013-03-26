@@ -354,9 +354,10 @@ class Steps
         if ( ! method_exists($controller, $controller_method) ) return;
 
         // convert object->method to Closure
-        $r = new ReflectionObject($controller);
-        $method = $r->getMethod($controller_method);
-        $closure = $method->getClosure($controller);
+        //$r = new ReflectionObject($controller);
+        //$method = $r->getMethod($controller_method);
+        //$closure = $method->getClosure($controller);
+        $closure = array($controller, $controller_method);
 
         $env->controller_closure = $closure;
     }
