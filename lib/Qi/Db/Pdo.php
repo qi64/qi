@@ -4,6 +4,7 @@
  * Based on http://www.meekro.com/
  */
 namespace Qi\Db;
+use Exception;
 use PDOException;
 use Qi\Ex\ExPdo;
 use Qi\Utils\Arrays;
@@ -79,12 +80,12 @@ class Pdo extends \PDO
         $row = $stmt->fetch();
         $stmt->closeCursor();
         //if ($row === false) throw new \DomainException("row not found");
-        return $row;
+        return $row ?: null;
     }
 
     public function queryValue($sql, $params = array())
     {
-        $row = call_user_func_array(array($this, 'queryFirstRow'), func_get_args());
+        $row = (array)call_user_func_array(array($this, 'queryFirstRow'), func_get_args());
         return reset($row);
     }
 
@@ -111,6 +112,7 @@ class Pdo extends \PDO
 
     public function buildFieldValues($keys)
     {
+        $keys = (array)$keys;
         if ($keys != array_values($keys)) {
             $keys = array_keys($keys);
         }
@@ -201,12 +203,26 @@ class Pdo extends \PDO
 
     public function createIndex($table, $column)
     {
-        return $this->exec("CREATE INDEX `$column` ON `$table` (`$column`)");
+        try {
+            // sqlite tem IF NOT EXISTS mas mysql não tem
+            return $this->exec("CREATE INDEX `$column` ON `$table` (`$column`)");
+        }catch (Exception $e) {}
+    }
+
+    public function createUniqueIndex($table, $column)
+    {
+        try {
+            // sqlite tem IF NOT EXISTS mas mysql não tem
+            return $this->exec("CREATE UNIQUE INDEX `$column` ON `$table` (`$column`)");
+        }catch (Exception $e) {}
     }
 
     public function dropIndex($table, $column)
     {
-        return $this->exec("DROP INDEX `$column` ON `$table`");
+        try {
+            // sqlite tem IF EXISTS mas mysql não tem
+            return $this->exec("DROP INDEX `$column` ON `$table`");
+        }catch (Exception $e) {}
     }
 
     public function exec($statement)

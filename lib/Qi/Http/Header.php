@@ -19,69 +19,73 @@ class Header
      */
     public static function gcf($v = 1)
     {
-        self::header("X-UA-Compatible", "chrome=$v");
+        static::header("X-UA-Compatible", "chrome=$v");
     }
 
     public static function content_type($type, $charset = null)
     {
-        if (!$charset) $charset = self::$CHARSET;
-        self::header("Content-Type", "$type; charset=$charset");
+        if (!$charset) $charset = static::$CHARSET;
+        static::header("Content-Type", "$type; charset=$charset");
     }
 
     public static function html($charset = null)
     {
-        self::content_type('text/html', $charset);
+        static::content_type('text/html', $charset);
     }
 
     public static function plain($charset = null)
     {
-        self::content_type('text/plain', $charset);
+        static::content_type('text/plain', $charset);
     }
 
     public static function text($charset = null)
     {
-        self::plain($charset);
+        static::plain($charset);
     }
 
     public static function xml($charset = null)
     {
-        self::content_type('text/xml', $charset);
+        static::content_type('text/xml', $charset);
     }
 
     public static function json($charset = null)
     {
-        self::content_type('application/json', $charset);
+        static::content_type('application/json', $charset);
     }
 
     public static function location($url = null)
     {
         if (!$url) $url = $_SERVER['REQUEST_URI']; // refresh to the current page
-        self::header("Location", $url);
+        static::header("Location", $url);
         exit;
     }
 
     public static function refresh()
     {
-        self::location();
+        static::location();
     }
 
     public static function back()
     {
-        $url = @$_SERVER['HTTP_REFERER'] ?: $_SERVER['REQUEST_URI'];
-        self::location($url);
+        static::location(static::backURI());
+    }
+    
+    public static function backURI()
+    {
+        return @$_SERVER['HTTP_REFERER'] ?: $_SERVER['REQUEST_URI'];
     }
 
     public static function notFound()
     {
         $status = @$_SERVER['SERVER_PROTOCOL'] ?: 'HTTP/1.1';
-        self::header("$status 404 Not Found");
+        static::header("$status 404 Not Found");
     }
 
     public static function noCache()
     {
-        self::header('Cache-Control', 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0');
-        self::header('Pragma', 'no-cache');
-        self::header('Expires',  '-1');
+        static::header('Cache-Control', 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0');
+        static::header('Pragma', 'no-cache');
+        static::header('Expires',  '-1');
         //header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");
     }
 
@@ -97,14 +101,14 @@ class Header
         if ( ! isset($_SERVER['PHP_AUTH_USER'])
             || $_SERVER['PHP_AUTH_USER'] != $user
             || $_SERVER['PHP_AUTH_PW'] != $passwd) {
-            self::authorization_required($realm);
+            static::authorization_required($realm);
         }
     }
 
     public static function authorization_required($realm = 'Authorization Required')
     {
-        self::header('WWW-Authenticate', "Basic realm='$realm'");
-        self::header("$_SERVER[SERVER_PROTOCOL] 401 Unauthorized");
+        static::header('WWW-Authenticate', "Basic realm='$realm'");
+        static::header("$_SERVER[SERVER_PROTOCOL] 401 Unauthorized");
         die($realm);
     }
 }

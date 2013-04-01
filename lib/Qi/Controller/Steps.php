@@ -12,6 +12,7 @@ use Qi\Http\Flash,
     ReflectionFunction;
 
 /**
+ * @TODO global matcher for path
  * @TODO alias to redirect an url to another
  * @TODO custom router
  * @TODO password protect
@@ -177,9 +178,11 @@ class Steps
 
     public function auth_closure($env)
     {
-        $env->auth_closure = function($user, $passwd) {
-            return $user == 'admin@local';
-        };
+        if ( is_callable( @$env->auth_closure ) ) return;
+        $env->auth_closure = @$env->cfg['auth']['closure']
+                          ?: function($user, $passwd) {
+                                return $user == 'admin@admin' && $passwd == 'admin';
+                             };
     }
 
     public function auth_login($env)
@@ -431,7 +434,7 @@ class Steps
 
     protected function render($__FILE__, $__VARS__ = array(), $TPL = null, $env)
     {
-        if ( ! stream_resolve_include_path($__FILE__) ) return $TPL;
+        if ( ! ($__FILE__ && stream_resolve_include_path($__FILE__)) ) return $TPL;
         Php::ob_start();
         Error::disable( $env->cfg['render_disable_error'] );
         extract((array)$__VARS__, EXTR_SKIP);
