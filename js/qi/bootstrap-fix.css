@@ -1,0 +1,43 @@
+.breadcrumb {
+    margin-bottom: 5px;
+    background-color: transparent;
+}
+
+.nav-tabs {
+    display: table;
+    margin: auto;
+}
+
+.tabbable .tab-content {
+    background-color: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    padding: 29px 39px;
+}
+
+@media (max-width: 1199px) {
+    .nav-tabs > li > a {
+        padding-top: 6px;
+        padding-bottom: 6px;
+        padding-right: 8px;
+        padding-left: 8px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .tabbable .tab-content {
+        padding: 29px 49px;
+    }
+}
+
+@media (max-width: 979px) and (min-width: 768px) {
+    .nav-tabs > li > a {
+        padding-top: 4px;
+        padding-bottom: 4px;
+        padding-right: 2px;
+        padding-left: 2px;
+    }
+    .tabbable .tab-content {
+        padding: 9px 29px;
+    }
+}
