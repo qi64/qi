@@ -1,0 +1,6 @@
+guard :shell do
+	watch /.*\.php/ do |f|
+		puts
+		`php #{f[0]}`
+	end
+end
