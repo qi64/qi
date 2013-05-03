@@ -1,15 +1,14 @@
 <?php
 
 namespace Qi\Spl;
-use FilterIterator,
-    RecursiveCallbackFilterIterator,
-    IteratorAggregate,
-    RecursiveRegexIterator,
+use IteratorAggregate,
     RecursiveDirectoryIterator,
-    RecursiveIteratorIterator;
+    RecursiveIteratorIterator,
+    FilesystemIterator,
+    RegexIterator;
 
 /**
- * Easy recursion on a File Tree
+ * Easy recursion on a File Tree with filter support
  */
 class RecursiveDirIterator implements IteratorAggregate
 {
@@ -18,27 +17,24 @@ class RecursiveDirIterator implements IteratorAggregate
     public $filter;
     public $dir;
 
-    public function __construct($dir = null)
+    public function __construct($dir = null, $filter = null)
     {
+        $this->flags = FilesystemIterator::SKIP_DOTS | FilesystemIterator::UNIX_PATHS;
         $this->dir = $dir;
+        $this->filter = $filter;
     }
 
     public function getIterator()
     {
         $it = new RecursiveDirectoryIterator($this->dir, $this->flags);
+        $it = new RecursiveIteratorIterator($it, $this->mode);
         if ($this->filter) {
             if (is_string($this->filter)) {
-                $it = new RecursiveRegexIterator($it, $this->filter);
+                $it = new RegexIterator($it, "!$this->filter!");
             }elseif (is_callable($this->filter)) {
-                $it = new RecursiveCallbackFilterIterator($it, $this->filter);
+                $it = new CallbackFilterIterator($it, $this->filter);
             }
         }
-        return new RecursiveIteratorIterator($it, $this->mode, $this->flags);
-
         return $it;
-    }
-    public function key()
-    {
-        return substr(parent::key(), strlen($this->dir) + 1);
     }
 }

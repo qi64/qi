@@ -3,6 +3,9 @@
 namespace Qi\Spl;
 use FilterIterator, Iterator;
 
+/**
+ * Backport from php 5.4
+ */
 class CallbackFilterIterator extends FilterIterator
 {
     const USE_FALSE = 0;  
