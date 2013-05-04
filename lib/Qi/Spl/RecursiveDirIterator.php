@@ -28,6 +28,7 @@ class RecursiveDirIterator implements IteratorAggregate
     {
         $it = new RecursiveDirectoryIterator($this->dir, $this->flags);
         $it = new RecursiveIteratorIterator($it, $this->mode);
+
         if ($this->filter) {
             if (is_string($this->filter)) {
                 $it = new RegexIterator($it, "!$this->filter!");
@@ -35,6 +36,7 @@ class RecursiveDirIterator implements IteratorAggregate
                 $it = new CallbackFilterIterator($it, $this->filter);
             }
         }
+
         return $it;
     }
 }

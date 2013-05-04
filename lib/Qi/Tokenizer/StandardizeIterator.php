@@ -2,14 +2,27 @@
 
 namespace Qi\Tokenizer;
 use ArrayIterator;
+
 /**
  * Iterate over token_get_all, returning all tokens Standardize as array
  */
 class StandardizeIterator extends ArrayIterator
 {
+    /**
+     * Standard Token codes starts from this one
+     */
     const FIRST_DEFAULT_TOKEN_CODE = 258;
+
+    /**
+     * $STRINGS codes are below this code
+     */
     const MAX_STRING_CODE = 10;
 
+    /**
+     * Missing PHP constants for characters tokens.
+     * The constant value is ord($char)
+     * @var array
+     */
     public static $CHARS = array(
          "=" => 'T_ASSIGN'
         ,'"' => 'T_DOUBLE_QUOTED_STRING'
@@ -37,6 +50,11 @@ class StandardizeIterator extends ArrayIterator
         ,"@" => 'T_ERROR_CONTROL'
     );
 
+    /**
+     * constants for strings tokens.
+     * The constant value starts from 1 and always below MAX_STRING_CODE
+     * @var array
+     */
     public static $STRINGS = array(
          'null'   => array(1, 'T_NULL')
         ,'false'  => array(2, 'T_FALSE')
@@ -46,14 +64,30 @@ class StandardizeIterator extends ArrayIterator
         ,'ticks'  => array(6, 'T_TICKS')
     );
 
-    // filled by self::setup() from $STRINGS above
+    /**
+     * filled by static::setup() from $STRINGS above
+     * @var array
+     */
     public static $STRINGS_CODE = array();
-    // @TODO advance line based on newline chars from the lastToken
+
+    /**
+     * @TODO advance line based on newline chars from the lastToken
+     * @var int
+     */
     protected $lastLine = 1;
+
+    /**
+     * Every token has these keys
+     * @var array
+     */
     public $keys = array('code', 'content', 'line', 'type');
 
+    /**
+     * @param string $php_source_code
+     */
     public function __construct($php_source_code)
     {
+        static::setup(); // ensure initialization
         parent::__construct(token_get_all($php_source_code));
     }
 
@@ -65,52 +99,67 @@ class StandardizeIterator extends ArrayIterator
     {
         $current = parent::current();
 
-        if ( ! is_array($current) ) { // single char token
+        // single char token
+        if ( ! is_array($current) ) {
             $current = array(ord($current), $current, $this->lastLine);
         }
 
-        if ( $current[0] == T_STRING && isset(self::$STRINGS[$current[1]]) ) {
-            $current[0] = self::$STRINGS[$current[1]][0];
+        // string token
+        if ( $current[0] == T_STRING && isset(static::$STRINGS[$current[1]]) ) {
+            $current[0] = static::$STRINGS[$current[1]][0];
         }
 
-        $current[] = self::getTokenName($current[0]);
+        // append token name that's missing from starndard array
+        $current[] = static::getTokenName($current[0]);
+
+        // save current line for the next iteration
         $this->lastLine = $current[2];
 
+        // assign key names to the index based standard array
         return array_combine($this->keys, $current);
     }
 
     public static function getTokenName($code)
     {
         // core PHP tokens
-        if ($code >= self::FIRST_DEFAULT_TOKEN_CODE) {
+        if ($code >= static::FIRST_DEFAULT_TOKEN_CODE) {
             return token_name($code);
         }
 
         // false, true, null, self, parent, ...
-        if ($code <= self::MAX_STRING_CODE) {
-            return self::$STRINGS_CODE[$code];
+        if ($code <= static::MAX_STRING_CODE) {
+            return static::$STRINGS_CODE[$code];
         }
 
         // handle as a single char string token
-        return self::$CHARS[chr($code)];
+        return static::$CHARS[chr($code)];
     }
 
     /**
-     * Create at runtime the self::$STRINGS_CODE array from self::$STRINGS_CODE
+     * Create at runtime the static::$STRINGS_CODE array from static::$STRINGS_CODE
      */
     public static function setup()
     {
-        if ( ! empty(self::$STRINGS_CODE) ) return;
-        foreach(self::$STRINGS as $map) {
-            self::$STRINGS_CODE[$map[0]] = $map[1];
+        if ( ! empty(static::$STRINGS_CODE) ) return;
+
+        // define global constants for chars
+        foreach(static::$CHARS as $char => $const) {
+            define($const, ord($char));
+        }
+
+        // define global constants for strings
+        foreach(static::$STRINGS as $map) {
+            static::$STRINGS_CODE[$map[0]] = $map[1];
+            define($map[1], $map[0]);
         }
     }
 
+    /**
+     * iterator rewind resets line position
+     */
     public function rewind()
     {
         $this->lastLine = 1;
         parent::rewind();
     }
 }
-
-StandardizeIterator::setup();

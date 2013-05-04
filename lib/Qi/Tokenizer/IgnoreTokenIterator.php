@@ -5,7 +5,7 @@ use Iterator, FilterIterator;
 
 class IgnoreTokenIterator extends FilterIterator
 {
-    protected $ignoreList = array();
+    public $ignoreList = array();
 
     public function __construct(Iterator $it, $ignoreList = array())
     {

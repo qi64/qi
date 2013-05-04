@@ -10,6 +10,7 @@ $all_tokens = token_get_all( file_get_contents($sample) );
 
 $noname = array();
 $found_tokens = array();
+
 foreach($all_tokens as $token) {
     if ( ! is_array($token) ) {
         $noname[$token] = null;
@@ -25,4 +26,3 @@ $noname = array_keys($noname);
 var_export($noname);
 
 var_export(array_diff($defaults, $found_tokens));
-

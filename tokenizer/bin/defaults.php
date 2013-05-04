@@ -10,7 +10,7 @@ for ($i = 128; $i < 512; $i++) {
 }
 
 if (basename(@$argv[0]) == basename(__FILE__)) {
-    var_export($token_names); // 127 tokens on php-5.4.0 (123 on 5.3.8)
+    var_export($token_names); // 127 tokens on php-5.4.12 (123 on 5.3.23)
     echo ' // ' . count($token_names);
 }
 

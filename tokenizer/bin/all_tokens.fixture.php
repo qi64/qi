@@ -28,7 +28,7 @@ goto label;
 label:
 abstract class ClasseAbstrata extends \stdClass {
     const c = 0;
-    use MyTrait {
+    use MyTrait, YourTrait {
         MyTrait::foo insteadof YourTrait;
     }
 };
@@ -40,7 +40,7 @@ final class Classe extends ClasseAbstrata implements Interf {
     private $private = 'Private';
     var $v = 'v';
 
-    function f (Array $p1, String $p2, Int $p3, Callable $c) {
+    function &f (Array $p1, String $p2, Int $p3, Callable $c) {
         global $v;
         __DIR__;
         __TRAIT__;
@@ -75,7 +75,7 @@ empty($v);
 
 // comentátio
 
-$a1 = array( array( 'key' => 'value', 'KEY' => 'VALUE' ));
+$a1 = array( array( 'key' => 'value', 'KEY' => "VALUE" ));
 foreach ($a1 as $a2): $a = (array)$a2; break; endforeach;
 for(;false;): eval(""); endfor;
 
@@ -88,7 +88,7 @@ Heredoc;
 $s = <<<'nowdoc'
 text";
 nowdoc;
-$s .= "other {$v} $a[0] ${v}". (String)Classe::c . 'single quotes';
+$s .= "other {$v} 'teste' \"teste\" $a[key] ${v}". (String)Classe::c . 'single quotes';
 
 $exp = (bool)((true == true) && (true === true) || (true != false)
     and (true !== false) or true xor (!false));
