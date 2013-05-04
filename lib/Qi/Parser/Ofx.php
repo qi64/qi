@@ -2,31 +2,47 @@
 
 namespace Qi\Parser;
 
-class Ofx implements \IteratorAggregate
+use SplFileInfo,
+    ArrayIterator,
+    RuntimeException;
+
+/**
+ * A diferença de implementação entre os bancos é muito grande, tornando praticamente inútil.
+ * O FITID não é sempre único e as vezes falta o balance.
+ */
+class Ofx extends ArrayIterator
 {
     public $OFXContent;
     public $originalString;
-    public $moviments;
+    public $moviments = array();
     public $conf;
-    public $db; // use this to add a layer to your database
+    public $bank_id = "";
+    public $branch_id = "";
+    public $account_id = "";
+    public $balance_amount = "";
+    public $balance_date = "";
 
-    private function fixTag($tag, $acceptSpaces= false)
+    public function __construct($string = null)
     {
-        $tag= strtoupper($tag);
-        $spaces = $acceptSpaces ? ' ': '';
-        $this->OFXContent= preg_replace("!^<$tag>[^<]+$!mi", "\$0</$tag>", $this->OFXContent);
+        if ($string instanceof SplFileInfo) {
+            $this->loadFromFile($string);
+        }else{
+            $this->loadFromString($string);
+        }
+        parent::__construct($this->getIndexedById());
     }
 
     public function loadFromFile($OFXFile)
     {
         if(file_exists($OFXFile))
-            return $this->loadFromString(file_get_contents($OFXFile));
+            return $this->loadFromString(utf8_encode(file_get_contents($OFXFile)));
         else
-            return array();
+            throw new RuntimeException("file not found '$OFXFile'");
     }
 
     public function loadFromString($OFXContent)
     {
+        if (!$OFXContent) return;
         // fix preg_replace with m option does not recognize \r as line ending
         $OFXContent = str_replace("\r\n", "\n", $OFXContent);
 
@@ -56,7 +72,17 @@ class Ofx implements \IteratorAggregate
         $this->fixTag('LEDGERBAL');
         $this->fixTag('BALAMT');
         $this->fixTag('LEDGERBAL');
+        $this->fixTag('REFNUM');
         $this->fixTag('MEMO', true);
+        /*
+TRNTYPE
+DTPOSTED
+TRNAMT
+FITID
+CHECKNUM
+REFNUM
+MEMO
+        */
 
         $this->ofx= simplexml_load_string("<?xml version='1.0'?> ".$this->OFXContent);
 
@@ -75,14 +101,22 @@ class Ofx implements \IteratorAggregate
         {
             $this->moviments[]= (array)$mov;
         }
+
+        $this->bank_id = (string)$this->ofx->BANKMSGSRSV1->STMTTRNRS->STMTRS->BANKACCTFROM->BANKID;
+        $this->branch_id = (string)$this->ofx->BANKMSGSRSV1->STMTTRNRS->STMTRS->BANKACCTFROM->BRANCHID;
+        $this->account_id = (string)$this->ofx->BANKMSGSRSV1->STMTTRNRS->STMTRS->BANKACCTFROM->ACCTID;
+        $this->balance_amount = (string)$this->ofx->BANKMSGSRSV1->STMTTRNRS->STMTRS->LEDGERBAL->BALAMT;
+        $this->balance_date = (string)$this->ofx->BANKMSGSRSV1->STMTTRNRS->STMTRS->LEDGERBAL->DTASOF;
+
         unset($this->originalString);
         unset($this->ofx);
+
         return $this->getIndexedById();
     }
 
-    public function getIterator()
+    public function getBaseId()
     {
-        return new \ArrayIterator($this->getIndexedById());
+        return $this->bank_id.$this->branch_id.$this->account_id;
     }
 
     public function toCSV($resource)
@@ -101,22 +135,19 @@ class Ofx implements \IteratorAggregate
     {
         $movimentos = array();
 
-        foreach($this->moviments as $m) {
+        foreach($this->moviments as $i => $m) {
             $movimento = array(
                 'data'  => substr($m['DTPOSTED'], 0, 8),
                 'valor' => floatval($m['TRNAMT']),
                 'desc'  => trim($m['MEMO']),
-                'id'    => $m['FITID'],
+                'fitid' => $m['FITID'], // unique
+                //'check' => $m['CHECKNUM'], // not unique
+                //'type'  => $m['TRNTYPE'], // always 'OTHER'
             );
             $movimentos[] = $movimento;
         }
-        return $movimentos;
-    }
 
-    public function __construct($OFXContent= false)
-    {
-        if($OFXContent)
-            $this->loadFromString($OFXContent);
+        return $movimentos;
     }
 
     /****************************************************************/
@@ -222,5 +253,12 @@ class Ofx implements \IteratorAggregate
                 $ret[]= $this->moviments[$i];
         }
         return $ret;
+    }
+
+    private function fixTag($tag, $acceptSpaces= false)
+    {
+        $tag= strtoupper($tag);
+        $spaces = $acceptSpaces ? ' ': '';
+        $this->OFXContent= preg_replace("!^<$tag>[^<]+$!mi", "\$0</$tag>", $this->OFXContent);
     }
 }
