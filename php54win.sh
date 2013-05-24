@@ -5,7 +5,7 @@
 cd /tmp # diretorio temporario para download e gerar a instalacao
 src=src # pasta onde sera extraido o php
 dst=php54 # pasta destino onde sera gerado a instalacao
-v=php-5.4.14 # versao do php para baixar
+v=php-5.4.15 # versao do php para baixar
 zip=$v-Win32-VC9-x86.zip
 url=http://windows.php.net/downloads/releases/$zip
 
@@ -71,7 +71,7 @@ add_dll() {
 install_ext() {
 	echo "ext"
 	mkdir -p $dst/ext
-	for dll in mysql mysqli pdo_mysql pdo_sqlite sqlite3 bz2 pdo_odbc exif sockets
+	for dll in mysql mysqli pdo_mysql pdo_sqlite bz2 pdo_odbc exif sockets
 	do
 		add_dll $dll
 	done
@@ -81,10 +81,16 @@ install_ext() {
 install_extra_ext() {
 	echo "extra ext"
 	mkdir -p $dst/ext
-	for dll in gd2 curl
+	for dll in sqlite3 gd2 curl
 	do
 		add_dll $dll
 	done
+}
+
+install_phar() {
+	echo "phar"
+	cp $src/phar.phar.bat $dst/phar.bat
+	cp $src/pharcommand.phar $dst/
 }
 
 # baixa o composer e cria o composer.bat
@@ -127,7 +133,9 @@ download
 minimum
 phpini
 install_ext
-install_composer
-install_phpunit
-install_ssl
-compress
+#install_extra_ext
+#install_phar
+#install_composer
+#install_phpunit
+#install_ssl
+#compress
