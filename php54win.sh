@@ -25,10 +25,18 @@ minimum() {
 	cp $src/php.exe $dst/
 	cp $src/php5ts.dll $dst/php5ts.dll
 	cat <<'S' > $dst/start.bat
+@ECHO OFF
 start http://localhost:8081/phpinfo.php
-"%~d0%~p0php" -S 0.0.0.0:8081 -t "%~d0%~p0www"
+SET root=%1
+if "%root%"=="" (
+	SET root=%~d0%~p0www
+)
+"%~d0%~p0php" -S 0.0.0.0:8081 -t "%root%"
+REM x86 http://www.microsoft.com/download/en/details.aspx?id=5582
+REM x64 http://www.microsoft.com/download/en/details.aspx?id=15336
 S
 	mkdir -p $dst/www
+	wget -O $dst/www/favicon.ico http://html5boilerplate.com/favicon.ico
 	echo "<?php phpinfo();" > $dst/www/phpinfo.php
 }
 
@@ -127,6 +135,20 @@ compress() {
 	echo "zip"
 	date=$(date +%Y-%m-%d_%H.%M | tr -d '\n')
 	zip -r -9 -q $v-$date.zip $dst/ 
+}
+
+reg() {
+	cat <<'S' > $dst/context-menu.bat
+@ECHO OFF
+SET reg=context-menu.reg
+echo Windows Registry Editor Version 5.00 > %reg%
+echo. >> %reg%
+echo [HKEY_CLASSES_ROOT\Directory\shell\php54\command] >> %reg%
+echo @="%~d0%~p0start.bat %%1" >> %reg%
+echo. >> %reg%
+
+regedit %reg%
+S
 }
 
 download
